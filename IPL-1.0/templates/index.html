@@ -5,92 +5,196 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cricket Scorecard Generator</title>
     <style>
+        :root {
+            --body-bg: #f4f6f9;
+            --container-bg: #ffffff;
+            --text-color: #343a40;
+            --heading-color: #343a40;
+            --link-color: #007bff;
+            --link-hover-color: #0056b3;
+            --button-bg: #007bff;
+            --button-text: #ffffff;
+            --button-hover-bg: #0056b3;
+            --fab-bg: #007bff; /* Floating Action Button */
+            --fab-text: #ffffff;
+            --fab-hover-bg: #0056b3;
+
+            /* Tables */
+            --table-border-color: #ddd;
+            --table-header-bg: #4a6572; /* slate grey/blue */
+            --table-header-text: #ffffff;
+            --table-header-border-bottom: #34495e;
+            --table-row-odd-bg: #f9f9f9;
+            --table-row-hover-bg: #f1f1f1;
+
+            /* Summaries / Alerts */
+            --summary-toss-bg: #e9ecef;
+            --summary-toss-text: #495057;
+            --summary-toss-border: #ced4da;
+            --summary-result-bg: #d4edda; /* success green */
+            --summary-result-text: #155724;
+            --summary-result-border: #c3e6cb;
+
+            /* Commentary */
+            --commentary-header-bg: #546e7a;
+            --commentary-header-text: #ffffff;
+            --commentary-header-hover-bg: #455a64;
+            --commentary-content-bg: #ffffff;
+            --commentary-content-border: #ddd;
+            --commentary-entry-border: #eee;
+
+            /* Team Selection Area */
+            --team-selection-bg: #e9ecef;
+            --team-box-border: #ccc;
+            --team-box-bg: #fff;
+            --team-box-text: #333;
+            --team-box-shadow-color: rgba(0,0,0,0.1); /* Shadow color variable */
+
+            /* Toss Animation */
+            --toss-animation-bg: #f9f9f9;
+            --toss-coin-bg: #FFD700;
+            --toss-coin-border: #DAA520;
+            --toss-text-color: #333;
+        }
+
+        [data-theme="dark"] {
+            --body-bg: #1e1e1e;
+            --container-bg: #2c2c2c;
+            --text-color: #e0e0e0;
+            --heading-color: #f1c40f; /* Accent color for headings in dark mode */
+            --link-color: #f1c40f;
+            --link-hover-color: #e0b804;
+            --button-bg: #f1c40f;
+            --button-text: #1e1e1e;
+            --button-hover-bg: #e0b804;
+            --fab-bg: #f1c40f;
+            --fab-text: #1e1e1e;
+            --fab-hover-bg: #e0b804;
+
+            /* Tables */
+            --table-border-color: #4a6572; /* Darker borders */
+            --table-header-bg: #34495e; /* Dark blue/grey */
+            --table-header-text: #f1c40f; /* Accent text */
+            --table-header-border-bottom: #2c3e50;
+            --table-row-odd-bg: #3a3a3a;
+            --table-row-hover-bg: #4a4a4a;
+
+            /* Summaries / Alerts */
+            --summary-toss-bg: #3a3a3a;
+            --summary-toss-text: #e0e0e0;
+            --summary-toss-border: #4a4a4a;
+            --summary-result-bg: #27ae60; /* Brighter green on dark */
+            --summary-result-text: #ffffff;
+            --summary-result-border: #1f8a4c;
+
+            /* Commentary */
+            --commentary-header-bg: #34495e;
+            --commentary-header-text: #f1c40f;
+            --commentary-header-hover-bg: #4a6572;
+            --commentary-content-bg: #222;
+            --commentary-content-border: #444;
+            --commentary-entry-border: #444;
+
+            /* Team Selection Area */
+            --team-selection-bg: #222;
+            --team-box-border: #555;
+            --team-box-bg: #3a3a3a;
+            --team-box-text: #e0e0e0;
+            --team-box-shadow-color: rgba(0,0,0,0.3); /* Darker shadow color */
+
+            /* Toss Animation */
+            --toss-animation-bg: #2c2c2c;
+            --toss-coin-bg: #f1c40f; /* Keep coin bright */
+            --toss-coin-border: #DAA520;
+            --toss-text-color: #e0e0e0;
+        }
+
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            background-color: #f4f6f9; /* Updated */
+            background-color: var(--body-bg);
             padding-top: 20px;
             padding-bottom: 20px;
-            color: #343a40; /* Default text color for body */
+            color: var(--text-color);
         }
         .container {
             max-width: 800px;
             margin: auto;
-            background-color: #ffffff; /* Kept as white */
-            box-shadow: 0 0 15px rgba(0,0,0,0.15); /* Slightly enhanced shadow */
+            background-color: var(--container-bg);
+            box-shadow: 0 0 15px var(--team-box-shadow-color); /* Adjusted to use variable */
             padding: 20px;
             border-radius: 8px;
         }
         .team-selection {
             margin-bottom: 20px;
             padding: 20px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--table-border-color); /* Using table border for consistency */
             border-radius: 5px;
-            background-color: #e9ecef; /* Kept or can be slightly lightened if needed */
+            background-color: var(--team-selection-bg);
         }
         h2 {
             text-align: center;
-            color: #343a40; /* Updated */
+            color: var(--heading-color);
         }
-        h3 { /* General h3, including the main match title */
+        h3 {
             text-align: center;
-            color: #343a40; /* Updated */
+            color: var(--heading-color);
             margin-bottom: 15px;
-            /* For scorecard_data.match_teams_title, consider adding a specific class if more styling is needed than just color,
-               or target it more specifically if possible. For now, this global h3 change will apply.
-               A bottom border could be: border-bottom: 1px solid #dee2e6; padding-bottom: 10px; */
         }
-        h4 { /* Innings titles, Toss/Result sub-titles */
+        h4 {
             text-align: center;
-            color: #343a40; /* Updated */
+            color: var(--heading-color);
             margin-top: 20px;
             margin-bottom: 10px;
         }
-        h5 { /* Bowling team titles */
-            color: #343a40; /* Updated */
+        h5 {
+            color: var(--heading-color);
             margin-top: 15px;
             margin-bottom: 5px;
-            text-align: left; /* Ensuring bowling titles are left-aligned */
+            text-align: left;
         }
         label {
             margin-right: 10px;
+            /* color handled by body */
         }
         select {
             padding: 10px;
             margin-right: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--table-border-color);
             border-radius: 4px;
             min-width: 100px;
+            background-color: var(--container-bg); /* Match container for inputs */
+            color: var(--text-color);
         }
-        button {
+        button { /* General button styling - primarily for sim buttons */
             padding: 10px 15px;
             margin-right: 10px;
-            background-color: #007bff;
-            color: white;
+            background-color: var(--button-bg);
+            color: var(--button-text);
             border: none;
             border-radius: 4px;
             cursor: pointer;
         }
         button:hover {
-            background-color: #0056b3;
+            background-color: var(--button-hover-bg);
         }
-        .sim-button {
+        .sim-button { /* Specific class for main action buttons if needed */
             margin-left: 10px;
             margin-right: 10px;
             padding: 10px 20px;
         }
-        button:disabled {
-            background-color: #cccccc;
-            color: #666666;
+        button:disabled { /* General disabled state */
+            background-color: #cccccc; /* Consider a variable: --button-disabled-bg */
+            color: #666666;       /* Consider a variable: --button-disabled-text */
             cursor: not-allowed;
             opacity: 0.5;
         }
         .scorecard-section {
             margin-bottom: 20px;
             padding: 15px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--table-border-color);
             border-radius: 5px;
-            background-color: #fff;
+            background-color: var(--container-bg); /* Match container for sections */
         }
         table {
             width: 100%;
@@ -98,45 +202,45 @@
             margin-top: 15px;
             border-radius: 5px;
             overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 4px var(--team-box-shadow-color); /* Adjusted */
         }
         th, td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--table-border-color);
             padding: 12px;
             text-align: left;
         }
         th {
-            background-color: #4a6572; /* Updated */
-            color: #ffffff; /* Updated */
-            border-bottom: 2px solid #34495e; /* Updated */
+            background-color: var(--table-header-bg);
+            color: var(--table-header-text);
+            border-bottom: 2px solid var(--table-header-border-bottom);
         }
         tbody tr:nth-child(odd) {
-            background-color: #f9f9f9;
+            background-color: var(--table-row-odd-bg);
         }
         tbody tr:hover {
-            background-color: #f1f1f1;
+            background-color: var(--table-row-hover-bg);
         }
         .hidden {
             display: none;
         }
-        .match-summary.toss-summary { /* More specific selector for toss if needed, or general .match-summary */
-            background-color: #e9ecef; /* Updated for Toss */
-            border: 1px solid #ced4da; /* Updated for Toss */
-            color: #495057; /* Updated for Toss */
+        .match-summary.toss-summary {
+            background-color: var(--summary-toss-bg);
+            border: 1px solid var(--summary-toss-border);
+            color: var(--summary-toss-text);
             padding: 15px;
             border-radius: 5px;
             margin-top: 15px;
         }
-        .match-summary h4 { /* Applies to h4 within .match-summary (like "Toss", "Result") */
+        .match-summary h4 {
             text-align: left;
             margin-top: 0;
-            color: inherit; /* Inherits color from .match-summary or .result-highlight */
+            color: inherit;
         }
-        .result-highlight { /* This is for the main match result message */
+        .result-highlight {
             margin-top: 20px;
-            background-color: #d4edda; /* Updated for Result */
-            color: #155724;    /* Updated for Result */
-            border: 1px solid #c3e6cb;  /* Updated for Result */
+            background-color: var(--summary-result-bg);
+            color: var(--summary-result-text);
+            border: 1px solid var(--summary-result-border);
             padding: 15px;
             text-align: center;
             border-radius: 5px;
@@ -148,43 +252,43 @@
         hr {
             border: 0;
             height: 1px;
-            background: #ddd;
+            background: var(--table-border-color); /* Use table border color for hr */
             margin-top: 25px;
             margin-bottom: 25px;
         }
-        p strong { /* Applies to Total score line and winner message strong tag */
-            font-size: 1.05em; /* Kept as is, can be increased if needed for Total */
+        p strong {
+            font-size: 1.05em;
         }
-        /* Style for the paragraph containing the total score */
-        .scorecard-section > p > strong { /* Targets <strong> inside <p> directly under .scorecard-section */
-             font-weight: 600; /* Slightly bolder if needed */
+        .scorecard-section > p > strong {
+             font-weight: 600;
         }
         .commentary-section {
             margin-top: 20px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--commentary-content-border);
             border-radius: 5px;
+            background-color: var(--commentary-content-bg);
         }
         .commentary-header {
-            background-color: #546e7a; /* Updated */
-            color: white;
+            background-color: var(--commentary-header-bg);
+            color: var(--commentary-header-text);
             padding: 10px;
             cursor: pointer;
             border-radius: 5px 5px 0 0;
         }
         .commentary-header:hover {
-            background-color: #455a64; /* Slightly darker shade for hover */
+            background-color: var(--commentary-header-hover-bg);
         }
         .commentary-content {
             padding: 10px;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid var(--commentary-content-border);
             max-height: 300px;
             overflow-y: auto;
-            display: none;
+            display: none; /* JS controlled */
         }
         .commentary-content p {
             margin: 5px 0;
             font-size: 0.9em;
-            border-bottom: 1px dashed #eee;
+            border-bottom: 1px dashed var(--commentary-entry-border);
             padding-bottom: 5px;
         }
         .commentary-content p:last-child {
@@ -203,14 +307,16 @@
             padding: 15px;
             text-align: center;
             cursor: pointer;
-            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease; /* Added border-color transition */
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease;
             border-radius: 10px;
-            background-color: #fff; /* Default background */
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background-color: var(--team-box-bg);
+            /* border is dynamically set by JS via team_data.colorPrimary, but we can set a default */
+            border: 2px solid var(--team-box-border);
+            box-shadow: 0 2px 5px var(--team-box-shadow-color);
         }
         .team-box:hover {
             transform: translateY(-5px) scale(1.03);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 10px var(--team-box-shadow-color); /* Slightly darker/more prominent on hover */
         }
         .team-logo {
             width: 80px;
@@ -218,72 +324,108 @@
             border-radius: 50%;
             object-fit: contain;
             margin-bottom: 10px;
-            background-color: #ffffff;
+            background-color: var(--container-bg); /* Ensure logo bg matches container bg */
             padding: 5px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px var(--team-box-shadow-color);
         }
         .team-name {
             font-weight: bold;
             font-size: 0.9em;
-            color: #333; /* Default text color */
+            color: var(--team-box-text);
             margin-top: 5px;
-            transition: color 0.3s ease; /* Added color transition */
+            transition: color 0.3s ease;
         }
-        .team-box.selected-team1, .team-box.selected-team2 {
-            /* Enhanced shadow for selection, specific background/border set by JS */
-            box-shadow: 0 0 15px rgba(0, 100, 255, 0.6), 0 0 0 3px rgba(0, 100, 255, 0.8);
-        }
+        /* .team-box.selected-team1, .team-box.selected-team2 styling is mostly JS driven for box-shadow */
+
         /* Team Grid Styles END */
 
         /* Toss Animation Styles START */
         #toss-animation-container {
             text-align: center;
             padding: 20px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--table-border-color);
             margin-bottom: 20px;
-            background-color: #f9f9f9;
+            background-color: var(--toss-animation-bg);
             border-radius: 8px;
         }
         #coin {
-            width: 80px; height: 80px; background-color: #FFD700; border: 2px solid #DAA520;
+            width: 80px; height: 80px;
+            background-color: var(--toss-coin-bg);
+            border: 2px solid var(--toss-coin-border);
             border-radius: 50%; margin: 0 auto 20px auto; display: flex;
             justify-content: center; align-items: center; font-size: 1.1em;
-            color: #4a4a4a; position: relative; transform-style: preserve-3d;
+            color: var(--text-color); /* To contrast with coin bg */
+            position: relative; transform-style: preserve-3d;
         }
         .coin-flipping { animation: flip-animation 0.25s linear infinite; }
         .coin-face { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; backface-visibility: hidden; }
         .coin-tails { transform: rotateY(180deg); }
         @keyframes flip-animation { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
-        #toss-text-announcement { font-size: 1.2em; min-height: 2.5em; color: #333; }
+        #toss-text-announcement {
+            font-size: 1.2em;
+            min-height: 2.5em;
+            color: var(--toss-text-color);
+        }
         /* Toss Animation Styles END */
 
         .floating-action-button {
             position: fixed;
-            bottom: 60px; /* Adjusted for approximate centering of 80px button with 50-100px margin */
-            right: 60px;  /* Adjusted */
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-color: #007bff; /* Example color */
-            color: white;
+            bottom: 50px;
+            right: 50px;
+            width: auto;
+            min-width: 140px;
+            height: 55px;
+            padding: 0 20px;
+            border-radius: 28px;
+            background-color: var(--fab-bg);
+            color: var(--fab-text);
             text-align: center;
-            font-size: 13px; /* Small font for longer text */
-            line-height: 1.3; /* Adjust for text fitting */
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 55px;
             border: none;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); /* This shadow might need its own variable if it changes significantly */
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px; /* Add padding to prevent text overflow */
-            z-index: 1000; /* Ensure it's above other content */
+            z-index: 1000;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
         }
+
         .floating-action-button:hover {
-            background-color: #0056b3; /* Darker shade on hover */
+            background-color: var(--fab-hover-bg);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.35); /* This shadow might need its own variable */
         }
+
+        #themeToggleBtn {
+            background-color: var(--button-bg, #007bff); /* Default if var not ready */
+            color: var(--button-text, #ffffff);
+            border: 1px solid var(--button-bg, #007bff);
+            border-radius: 5px;
+            padding: 8px 12px;
+            position: fixed;
+            top: 20px;
+            right: 20px; /* Positioned top-right */
+            z-index: 2000; /* Ensure it's above other content */
+            cursor: pointer;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        #themeToggleBtn:hover {
+            background-color: var(--button-hover-bg, #0056b3);
+        }
+
+        /* Adjustments for theme toggle button text color in dark mode if button doesn't fully use theme vars */
+        [data-theme="dark"] #themeToggleBtn {
+            background-color: var(--button-bg); /* Uses dark theme button variables */
+            color: var(--button-text);
+            border-color: var(--button-bg);
+       }
+       [data-theme="dark"] #themeToggleBtn:hover {
+            background-color: var(--button-hover-bg);
+       }
     </style>
 </head>
 <body>
+    <button id="themeToggleBtn" style="position: fixed; top: 20px; right: 20px; padding: 8px 12px; z-index: 1001; cursor: pointer;">Toggle Theme</button>
     <div class="container">
         <h2>Cricket Scorecard Generator</h2>
 
@@ -555,6 +697,40 @@
                 }
             }
         });
+
+        const themeToggleBtn = document.getElementById('themeToggleBtn');
+        const currentTheme = localStorage.getItem('theme'); // Use 'theme' as the key
+
+        // Function to apply theme (sets data-attribute on body)
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.setAttribute('data-theme', 'dark');
+                if (themeToggleBtn) themeToggleBtn.textContent = 'Light Mode'; // Update button text
+            } else {
+                document.body.setAttribute('data-theme', 'light'); // Default to light
+                if (themeToggleBtn) themeToggleBtn.textContent = 'Dark Mode'; // Update button text
+            }
+        }
+
+        // Apply saved theme on initial load
+        if (currentTheme) {
+            applyTheme(currentTheme);
+        } else {
+            // If no theme saved, default to light and update button text accordingly
+            applyTheme('light');
+        }
+
+        // Event listener for the button
+        if (themeToggleBtn) {
+            themeToggleBtn.addEventListener('click', () => {
+                let newTheme = 'light'; // Default to light if current is dark or not set
+                if (document.body.getAttribute('data-theme') === 'light') {
+                    newTheme = 'dark';
+                }
+                applyTheme(newTheme);
+                localStorage.setItem('theme', newTheme); // Save new preference
+            });
+        }
     </script>
 </body>
 </html>
