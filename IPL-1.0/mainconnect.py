@@ -2276,8 +2276,8 @@ def game(manual=True, sentTeamOne=None, sentTeamTwo=None, switch="group"):
     team2Info = []
 
     # spin, pace factor -> 0.0 - 1.0
-    team1Players = dataFile[team_one_inp]
-    team2Players = dataFile[team_two_inp]
+    team1Players = dataFile[team_one_inp]['players'] # Access the 'players' list
+    team2Players = dataFile[team_two_inp]['players'] # Access the 'players' list
     team1 = team_one_inp
     team2 = team_two_inp
     print(team1Players)
