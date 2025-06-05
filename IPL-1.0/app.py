@@ -137,19 +137,17 @@ def generate_scorecard():
         try:
             simulator = MatchSimulator(team1_code, team2_code)
             toss_message, toss_winner, toss_decision = simulator.perform_toss()
-            # Storing the simulator instance directly in session.
-            # This might require custom serialization if MatchSimulator isn't directly pickleable.
-            # For complex objects, consider storing __dict__ and reconstructing, or using Flask-Session with a proper backend.
-            session['match_simulator_dict'] = simulator.__dict__
-            session['team1_code'] = simulator.team1_code # Store codes for re-instantiation
-            session['team2_code'] = simulator.team2_code
+            # For a new ball-by-ball game:
+            simulator = MatchSimulator(team1_code, team2_code) # No saved_state for a new game
+            simulator.perform_toss() # Initialize by performing the toss
+            session['sim_state'] = simulator.get_minimal_state_for_session() # Store minimal state
 
-            # Instead of returning f-string, redirect to a new route that will render the ball_by_ball.html template
             return redirect(url_for('ball_by_ball_game_view'))
         except Exception as e:
             print(f"Error initializing MatchSimulator or performing toss: {e}")
-            # Fallback or error message
-            return redirect(url_for('index', error_message="Failed to start ball-by-ball simulation."))
+            import traceback
+            traceback.print_exc()
+            return redirect(url_for('index', error_message=f"Failed to start ball-by-ball simulation: {e}"))
 
     else:
         # Unknown simulation type, redirect to index
@@ -157,47 +155,46 @@ def generate_scorecard():
 
 @app.route('/ball_by_ball_game_view')
 def ball_by_ball_game_view():
-    simulator_dict = session.get('match_simulator_dict')
-    if not simulator_dict:
+    saved_minimal_state = session.get('sim_state')
+    if not saved_minimal_state:
         return redirect(url_for('index', error_message="No simulation found. Please start a new game."))
 
-    # Re-instantiate the simulator object from its dictionary representation
-    # This is a common pattern if the object itself isn't directly session-serializable
-    # or to ensure a fresh object that can have methods called.
-    team1_code = session.get('team1_code')
-    team2_code = session.get('team2_code')
-    if not team1_code or not team2_code: # Should not happen if session is consistent
-         return redirect(url_for('index', error_message="Session error. Please start a new game."))
-
-    simulator = MatchSimulator(team1_code, team2_code) # Create a new instance
-    simulator.__dict__.update(simulator_dict) # Load its state from the session dictionary
-
-    # For now, we'll create a placeholder ball_by_ball.html if it doesn't exist.
-    # The actual UI will be built in the next subtask.
-    initial_game_state = simulator.get_game_state()
-    return render_template('ball_by_ball.html', game_state=initial_game_state)
+    try:
+        # Rehydrate simulator from the minimal saved state
+        simulator = MatchSimulator(
+            team1_code=saved_minimal_state['team1_code'],
+            team2_code=saved_minimal_state['team2_code'],
+            saved_state=saved_minimal_state
+        )
+        initial_game_state = simulator.get_game_state()
+        return render_template('ball_by_ball.html', game_state=initial_game_state)
+    except Exception as e:
+        print(f"Error rehydrating MatchSimulator from session: {e}")
+        import traceback
+        traceback.print_exc()
+        session.pop('sim_state', None) # Clear potentially corrupted state
+        return redirect(url_for('index', error_message=f"Failed to load simulation: {e}"))
 
 
 @app.route('/simulate_next_ball', methods=['POST'])
 def simulate_next_ball():
-    simulator_dict = session.get('match_simulator_dict')
-    if not simulator_dict:
+    saved_minimal_state = session.get('sim_state')
+    if not saved_minimal_state:
         return jsonify({"error": "No simulation found in session. Please start a new game."}), 400
 
-    team1_code = session.get('team1_code')
-    team2_code = session.get('team2_code')
-    if not team1_code or not team2_code:
-         return jsonify({"error": "Session error with team codes."}), 400
-
-    simulator = MatchSimulator(team1_code, team2_code) # Re-instantiate
-    simulator.__dict__.update(simulator_dict) # Load state
-
     try:
-        ball_outcome_data = simulator.simulate_one_ball() # This should return both summary and ball_event
-        session['match_simulator_dict'] = simulator.__dict__ # Save updated state
+        # Rehydrate simulator
+        simulator = MatchSimulator(
+            team1_code=saved_minimal_state['team1_code'],
+            team2_code=saved_minimal_state['team2_code'],
+            saved_state=saved_minimal_state
+        )
 
-        # ball_outcome_data already contains 'summary' (which is get_game_state()) and 'ball_event'
-        return jsonify(ball_outcome_data)
+        ball_result = simulator.simulate_one_ball() # This method now returns a dict with 'summary' and 'ball_event'
+
+        session['sim_state'] = simulator.get_minimal_state_for_session() # Save updated minimal state
+
+        return jsonify(ball_result) # Return the combined dict
     except Exception as e:
         print(f"Error during simulate_next_ball: {e}")
         # Consider logging the full traceback for debugging
