@@ -9,8 +9,8 @@
             font-family: Arial, sans-serif;
             margin: 0;
             background-color: #f0f4f8;
-            padding-top: 20px; /* Added padding to avoid content touching top edge */
-            padding-bottom: 20px; /* Added padding to avoid content touching bottom edge */
+            padding-top: 20px;
+            padding-bottom: 20px;
         }
         .container {
             max-width: 800px;
@@ -18,11 +18,11 @@
             background-color: #ffffff;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
             padding: 20px;
-            border-radius: 8px; /* Added border-radius for container */
+            border-radius: 8px;
         }
         .team-selection {
             margin-bottom: 20px;
-            padding: 20px; /* Increased padding */
+            padding: 20px;
             border: 1px solid #ddd;
             border-radius: 5px;
             background-color: #e9ecef;
@@ -34,15 +34,15 @@
         h3 {
             text-align: center;
             color: #333;
-            margin-bottom: 15px; /* Added margin for spacing */
+            margin-bottom: 15px;
         }
         h4 {
             text-align: center;
             color: #333;
-            margin-top: 20px; /* Added margin for spacing */
-            margin-bottom: 10px; /* Added margin for spacing */
+            margin-top: 20px;
+            margin-bottom: 10px;
         }
-        h5 { /* For Bowling titles */
+        h5 {
             color: #333;
             margin-top: 15px;
             margin-bottom: 5px;
@@ -55,11 +55,11 @@
             margin-right: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            min-width: 100px; /* Ensure select boxes have a decent width */
+            min-width: 100px;
         }
-        button { /* Default button style */
+        button {
             padding: 10px 15px;
-            margin-right: 10px; /* Default margin, specific buttons can override */
+            margin-right: 10px;
             background-color: #007bff;
             color: white;
             border: none;
@@ -67,14 +67,14 @@
             cursor: pointer;
         }
         button:hover {
-            background-color: #0056b3; /* Darker shade on hover */
+            background-color: #0056b3;
         }
-        .sim-button { /* Style for the new simulation buttons */
+        .sim-button {
             margin-left: 10px;
             margin-right: 10px;
-            padding: 10px 20px; /* A bit more prominent */
+            padding: 10px 20px;
         }
-        button:disabled { /* Style for disabled button (though not directly used for sim buttons now) */
+        button:disabled {
             background-color: #cccccc;
             color: #666666;
             cursor: not-allowed;
@@ -227,33 +227,41 @@
     <div class="container">
         <h2>Cricket Scorecard Generator</h2>
 
-        <div class="team-selection">
-            <h3>Select Teams (Click to Select)</h3>
-            <form id="scorecardForm" action="/generate_scorecard" method="post">
-                <input type="hidden" name="selectedTeam1" id="selectedTeam1"> <!-- name attribute changed -->
-                <input type="hidden" name="selectedTeam2" id="selectedTeam2"> <!-- name attribute changed -->
+        {% if not scorecard_data %}
+            <div class="team-selection">
+                <h3>Select Teams (Click to Select)</h3>
+                <form id="scorecardForm" action="{{ url_for('generate_scorecard') }}" method="post">
+                    <input type="hidden" name="selectedTeam1" id="selectedTeam1">
+                    <input type="hidden" name="selectedTeam2" id="selectedTeam2">
 
-                <div class="team-grid-container">
-                    {% for team_code, team_data in teams.items() %}
-                    <div class="team-box"
-                         data-team-code="{{ team_code }}"
-                         data-full-name="{{ team_data.fullName }}"
-                         data-primary-color="{{ team_data.colorPrimary }}"
-                         data-secondary-color="{{ team_data.colorSecondary }}"
-                         style="border: 2px solid {{ team_data.colorPrimary }};">
-                        <img src="{{ team_data.logo }}" alt="{{ team_data.fullName }} Logo" class="team-logo">
-                        <p class="team-name">{{ team_data.name.upper() }}</p>
+                    <div class="team-grid-container">
+                        {% for team_code, team_data in teams.items() %}
+                        <div class="team-box"
+                             data-team-code="{{ team_code }}"
+                             data-full-name="{{ team_data.fullName }}"
+                             data-primary-color="{{ team_data.colorPrimary }}"
+                             data-secondary-color="{{ team_data.colorSecondary }}"
+                             style="border: 2px solid {{ team_data.colorPrimary }};">
+                            <img src="{{ team_data.logo }}" alt="{{ team_data.fullName }} Logo" class="team-logo">
+                            <p class="team-name">{{ team_data.name.upper() }}</p>
+                        </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
-                </div>
-                <!-- New Simulation Options Buttons START -->
-                <div class="simulation-options" style="text-align: center; margin-top: 20px; display: none;">
-                    <button type="submit" name="simulation_type" value="direct" id="directSimButton" class="sim-button">Direct Scorecard</button>
-                    <button type="submit" name="simulation_type" value="ball_by_ball" id="ballByBallSimButton" class="sim-button">Ball-by-Ball Simulation</button>
-                </div>
-                <!-- New Simulation Options Buttons END -->
-            </form>
-        </div>
+
+                    <div class="simulation-options" style="text-align: center; margin-top: 20px; display: none;">
+                        <button type="submit" name="simulation_type" value="direct" id="directSimButton" class="sim-button">Direct Scorecard</button>
+                        <button type="submit" name="simulation_type" value="ball_by_ball" id="ballByBallSimButton" class="sim-button">Ball-by-Ball Simulation</button>
+                    </div>
+                </form>
+            </div>
+        {% else %}
+            {# This block executes if scorecard_data IS present #}
+            <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+                <form action="{{ url_for('index') }}" method="get">
+                    <button type="submit" class="sim-button">Play New Game</button>
+                </form>
+            </div>
+        {% endif %}
 
         {% if scorecard_data %}
         <div class="scorecard-section">
@@ -320,7 +328,7 @@
             {% if scorecard_data.innings1Log %}
             <div class="commentary-section">
                 <div class="commentary-header" onclick="toggleCommentary('commentary1')">
-                    Innings 1: Over-by-Over Log &#9662; <!-- Down arrow -->
+                    Innings 1: Over-by-Over Log &#9662;
                 </div>
                 <div class="commentary-content" id="commentary1">
                     {% for log_entry in scorecard_data.innings1Log %}
@@ -386,7 +394,7 @@
             {% if scorecard_data.innings2Log %}
             <div class="commentary-section">
                 <div class="commentary-header" onclick="toggleCommentary('commentary2')">
-                    Innings 2: Over-by-Over Log &#9662; <!-- Down arrow -->
+                    Innings 2: Over-by-Over Log &#9662;
                 </div>
                 <div class="commentary-content" id="commentary2">
                     {% for log_entry in scorecard_data.innings2Log %}
@@ -419,111 +427,116 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            const teamBoxes = document.querySelectorAll('.team-box');
-            const selectedTeam1Input = document.getElementById('selectedTeam1');
-            const selectedTeam2Input = document.getElementById('selectedTeam2');
-            const simulationOptionsDiv = document.querySelector('.simulation-options'); // Get the new div
-            let team1 = null;
-            let team2 = null;
+            const scorecardDataPresent = {{ scorecard_data is not none | tojson }};
 
-            teamBoxes.forEach(box => {
-                const primaryColor = box.dataset.primaryColor;
-                const originalBackgroundColor = box.style.backgroundColor || 'white';
-                const teamNameP = box.querySelector('.team-name');
-                const originalTextColor = teamNameP.style.color || '#333';
+            if (!scorecardDataPresent) { // Only add these listeners if team selection is visible
+                const teamBoxes = document.querySelectorAll('.team-box');
+                const selectedTeam1Input = document.getElementById('selectedTeam1');
+                const selectedTeam2Input = document.getElementById('selectedTeam2');
+                const simulationOptionsDiv = document.querySelector('.simulation-options');
+                let team1 = null;
+                let team2 = null;
 
-                function getContrastYIQ(hexcolor){
-                    hexcolor = hexcolor.replace("#", "");
-                    var r = parseInt(hexcolor.substr(0,2),16);
-                    var g = parseInt(hexcolor.substr(2,2),16);
-                    var b = parseInt(hexcolor.substr(4,2),16);
-                    var yiq = ((r*299)+(g*587)+(b*114))/1000;
-                    return (yiq >= 128) ? '#333' : 'white';
-                }
+                teamBoxes.forEach(box => {
+                    const primaryColor = box.dataset.primaryColor;
+                    const originalBackgroundColor = box.style.backgroundColor || 'white';
+                    const teamNameP = box.querySelector('.team-name');
+                    const originalTextColor = teamNameP.style.color || '#333';
 
-                const hoverTextColor = getContrastYIQ(primaryColor);
-
-                box.addEventListener('mouseenter', function () {
-                    if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
-                        this.style.backgroundColor = primaryColor;
-                        teamNameP.style.color = hoverTextColor;
+                    function getContrastYIQ(hexcolor){
+                        hexcolor = hexcolor.replace("#", "");
+                        var r = parseInt(hexcolor.substr(0,2),16);
+                        var g = parseInt(hexcolor.substr(2,2),16);
+                        var b = parseInt(hexcolor.substr(4,2),16);
+                        var yiq = ((r*299)+(g*587)+(b*114))/1000;
+                        return (yiq >= 128) ? '#333' : 'white';
                     }
-                });
 
-                box.addEventListener('mouseleave', function () {
-                    if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
-                        this.style.backgroundColor = originalBackgroundColor;
-                        teamNameP.style.color = originalTextColor;
-                    }
-                });
+                    const hoverTextColor = getContrastYIQ(primaryColor);
 
-                box.addEventListener('click', function () {
-                    const teamCode = this.dataset.teamCode;
-                    const clickedBoxPrimaryColor = this.dataset.primaryColor;
-                    const clickedBoxTextColor = getContrastYIQ(clickedBoxPrimaryColor);
-
-                    if (team1 === teamCode) {
-                        team1 = null;
-                        selectedTeam1Input.value = '';
-                        this.classList.remove('selected-team1');
-                        this.style.backgroundColor = originalBackgroundColor;
-                        teamNameP.style.color = originalTextColor;
-                    } else if (team2 === teamCode) {
-                        team2 = null;
-                        selectedTeam2Input.value = '';
-                        this.classList.remove('selected-team2');
-                        this.style.backgroundColor = originalBackgroundColor;
-                        teamNameP.style.color = originalTextColor;
-                    } else if (!team1) {
-                        team1 = teamCode;
-                        selectedTeam1Input.value = team1;
-                        this.classList.add('selected-team1');
-                        this.style.backgroundColor = clickedBoxPrimaryColor;
-                        teamNameP.style.color = clickedBoxTextColor;
-                    } else if (!team2) {
-                        team2 = teamCode;
-                        selectedTeam2Input.value = team2;
-                        this.classList.add('selected-team2');
-                        this.style.backgroundColor = clickedBoxPrimaryColor;
-                        teamNameP.style.color = clickedBoxTextColor;
-                    } else {
-                        const oldTeam1Box = document.querySelector('.team-box.selected-team1');
-                        if (oldTeam1Box) {
-                            oldTeam1Box.classList.remove('selected-team1');
-                            oldTeam1Box.style.backgroundColor = originalBackgroundColor;
-                            oldTeam1Box.querySelector('.team-name').style.color = originalTextColor;
+                    box.addEventListener('mouseenter', function () {
+                        if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
+                            this.style.backgroundColor = primaryColor;
+                            teamNameP.style.color = hoverTextColor;
                         }
-                        team1 = teamCode;
-                        selectedTeam1Input.value = team1;
-                        this.classList.add('selected-team1');
-                        this.style.backgroundColor = clickedBoxPrimaryColor;
-                        teamNameP.style.color = clickedBoxTextColor;
-                    }
-                    validateSelections();
+                    });
+
+                    box.addEventListener('mouseleave', function () {
+                        if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
+                            this.style.backgroundColor = originalBackgroundColor;
+                            teamNameP.style.color = originalTextColor;
+                        }
+                    });
+
+                    box.addEventListener('click', function () {
+                        const teamCode = this.dataset.teamCode;
+                        const clickedBoxPrimaryColor = this.dataset.primaryColor;
+                        const clickedBoxTextColor = getContrastYIQ(clickedBoxPrimaryColor);
+
+                        if (team1 === teamCode) {
+                            team1 = null;
+                            selectedTeam1Input.value = '';
+                            this.classList.remove('selected-team1');
+                            this.style.backgroundColor = originalBackgroundColor;
+                            teamNameP.style.color = originalTextColor;
+                        } else if (team2 === teamCode) {
+                            team2 = null;
+                            selectedTeam2Input.value = '';
+                            this.classList.remove('selected-team2');
+                            this.style.backgroundColor = originalBackgroundColor;
+                            teamNameP.style.color = originalTextColor;
+                        } else if (!team1) {
+                            team1 = teamCode;
+                            selectedTeam1Input.value = team1;
+                            this.classList.add('selected-team1');
+                            this.style.backgroundColor = clickedBoxPrimaryColor;
+                            teamNameP.style.color = clickedBoxTextColor;
+                        } else if (!team2) {
+                            team2 = teamCode;
+                            selectedTeam2Input.value = team2;
+                            this.classList.add('selected-team2');
+                            this.style.backgroundColor = clickedBoxPrimaryColor;
+                            teamNameP.style.color = clickedBoxTextColor;
+                        } else {
+                            const oldTeam1Box = document.querySelector('.team-box.selected-team1');
+                            if (oldTeam1Box) {
+                                oldTeam1Box.classList.remove('selected-team1');
+                                oldTeam1Box.style.backgroundColor = originalBackgroundColor;
+                                oldTeam1Box.querySelector('.team-name').style.color = originalTextColor;
+                            }
+                            team1 = teamCode;
+                            selectedTeam1Input.value = team1;
+                            this.classList.add('selected-team1');
+                            this.style.backgroundColor = clickedBoxPrimaryColor;
+                            teamNameP.style.color = clickedBoxTextColor;
+                        }
+                        validateSelections();
+                    });
                 });
-            });
 
-            function validateSelections() {
-                if (team1 && team2 && team1 !== team2) {
-                    simulationOptionsDiv.style.display = 'block'; // Show simulation buttons
-                } else {
-                    simulationOptionsDiv.style.display = 'none'; // Hide simulation buttons
+                function validateSelections() {
+                    if (team1 && team2 && team1 !== team2) {
+                        if(simulationOptionsDiv) simulationOptionsDiv.style.display = 'block';
+                    } else {
+                        if(simulationOptionsDiv) simulationOptionsDiv.style.display = 'none';
+                    }
                 }
-            }
 
-            validateSelections(); // Initial check
+                validateSelections();
 
-            document.getElementById('scorecardForm').addEventListener('submit', function(event) {
-                // Basic validation, more specific validation can be added per button if needed
-                if (!selectedTeam1Input.value || !selectedTeam2Input.value) {
-                    event.preventDefault();
-                    alert('Please select two teams to generate the scorecard.');
-                } else if (selectedTeam1Input.value === selectedTeam2Input.value) {
-                    event.preventDefault();
-                    alert('Please select two different teams.');
+                const scorecardForm = document.getElementById('scorecardForm');
+                if (scorecardForm) {
+                    scorecardForm.addEventListener('submit', function(event) {
+                        if (!selectedTeam1Input.value || !selectedTeam2Input.value) {
+                            event.preventDefault();
+                            alert('Please select two teams to generate the scorecard.');
+                        } else if (selectedTeam1Input.value === selectedTeam2Input.value) {
+                            event.preventDefault();
+                            alert('Please select two different teams.');
+                        }
+                    });
                 }
-                // No need to check for simulation_type here as it's part of the clicked button
-            });
+            } // end if (!scorecardDataPresent)
         });
     </script>
 </body>

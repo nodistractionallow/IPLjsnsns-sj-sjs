@@ -2,9 +2,8 @@ import random
 import json
 import accessJSON
 import copy
-import logging # Added import
+import logging
 
-# Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class MatchSimulator:
@@ -38,51 +37,43 @@ class MatchSimulator:
         if not team1_player_initials_list: raise ValueError(f"Player list for {self.team1_code} is empty/missing.")
         if not team2_player_initials_list: raise ValueError(f"Player list for {self.team2_code} is empty/missing.")
 
-        # Call _initialize_fresh_game_state() early. It uses self.team1_code and self.team2_code.
         self._initialize_fresh_game_state()
 
-        # Initialize player stats holders (these are distinct from the structures within _initialize_fresh_game_state)
         self.team1_players_stats = {}
         self.team2_players_stats = {}
 
-        # Pre-process player stats for both teams
         for initial in team1_player_initials_list:
+            processed_initial_str = str(initial).strip()
+            if not processed_initial_str:
+                logging.warning(f"Skipping empty player initial for team {self.team1_code}.")
+                continue
             raw_stats = None
             try:
-                processed_initial = str(initial).strip()
-                if not processed_initial:
-                    logging.warning(f"Skipping empty player initial for team {self.team1_code}.")
-                    continue
-                raw_stats = accessJSON.getPlayerInfo(processed_initial)
+                raw_stats = accessJSON.getPlayerInfo(processed_initial_str)
             except KeyError:
-                logging.warning(f"Player initial '{processed_initial}' not found in playerInfoProcessed.json for team {self.team1_code}. Using placeholder stats.")
-                # raw_stats remains None, _preprocess_player_stats will handle it
+                logging.warning(f"Player initial '{processed_initial_str}' not found for team {self.team1_code}. Using placeholder.")
             except Exception as e:
-                logging.error(f"Unexpected error fetching info for '{processed_initial}' (Team {self.team1_code}): {e}. Using placeholder.")
-                # raw_stats remains None
-            self.team1_players_stats[processed_initial] = self._preprocess_player_stats(processed_initial, raw_stats)
+                logging.error(f"Error fetching info for '{processed_initial_str}' (Team {self.team1_code}): {e}. Using placeholder.")
+            self.team1_players_stats[processed_initial_str] = self._preprocess_player_stats(processed_initial_str, raw_stats)
 
         for initial in team2_player_initials_list:
+            processed_initial_str = str(initial).strip()
+            if not processed_initial_str:
+                logging.warning(f"Skipping empty player initial for team {self.team2_code}.")
+                continue
             raw_stats = None
             try:
-                processed_initial = str(initial).strip()
-                if not processed_initial:
-                    logging.warning(f"Skipping empty player initial for team {self.team2_code}.")
-                    continue
-                raw_stats = accessJSON.getPlayerInfo(processed_initial)
+                raw_stats = accessJSON.getPlayerInfo(processed_initial_str)
             except KeyError:
-                logging.warning(f"Player initial '{processed_initial}' not found in playerInfoProcessed.json for team {self.team2_code}. Using placeholder stats.")
+                logging.warning(f"Player initial '{processed_initial_str}' not found for team {self.team2_code}. Using placeholder.")
             except Exception as e:
-                logging.error(f"Unexpected error fetching info for '{processed_initial}' (Team {self.team2_code}): {e}. Using placeholder.")
-            self.team2_players_stats[processed_initial] = self._preprocess_player_stats(processed_initial, raw_stats)
+                logging.error(f"Error fetching info for '{processed_initial_str}' (Team {self.team2_code}): {e}. Using placeholder.")
+            self.team2_players_stats[processed_initial_str] = self._preprocess_player_stats(processed_initial_str, raw_stats)
 
-        # Initialize batting orders and bowler phase lists using the now populated self.teamX_players_stats
         self._initialize_batting_order_and_bowlers()
 
         if saved_state and saved_state.get('toss_winner'):
             self.load_from_saved_state(saved_state)
-        # Else, _initialize_fresh_game_state has already set defaults. app.py calls perform_toss for new games.
-
 
     def _initialize_fresh_game_state(self):
         self.batting_team_code = None; self.bowling_team_code = None
@@ -93,7 +84,6 @@ class MatchSimulator:
         self.innings = { 1: self._get_empty_innings_structure(), 2: self._get_empty_innings_structure() }
         self.target = 0; self.game_over = False; self.match_winner = None; self.win_message = ""
         self.toss_winner = None; self.toss_decision = None; self.toss_message = ""
-
         self.batting_order = {self.team1_code: [], self.team2_code: []}
         self.bowlers_list = {self.team1_code: [], self.team2_code: []}
         self.team_bowler_phases = {
@@ -102,9 +92,7 @@ class MatchSimulator:
         }
         self.next_batsman_index = {self.team1_code: 0, self.team2_code: 0}
 
-
     def _create_placeholder_player_stats(self, initial_str):
-        # Ensure keys are strings, especially for denominations and out types
         return {
             "playerInitials": str(initial_str), "displayName": str(initial_str),
             "BowlingSkill": "Unknown", "batStyle": "Unknown","BattingHand": "Unknown",
@@ -112,43 +100,46 @@ class MatchSimulator:
             "batOutTypes": {'bowled':1,'caught':1,'runOut':0,'lbw':0,'stumped':0,'hitwicket':0},
             "batBallsTotal": 25, "batOutsTotal": 2, "runnedOut":0, "catches": 0, "matches":1,
             "bowlRunDenominations": {'0':10,'1':10,'2':2,'3':0,'4':1,'6':1},
-            "bowlOutTypes": {'bowled':1,'caught':1,'lbw':0,'stumped':0}, # These are wicket types taken by bowler
-            "bowlBallsTotal": 25, "bowlOutsTotal": 1, # Wickets taken by bowler
+            "bowlOutTypes": {'bowled':1,'caught':1,'lbw':0,'stumped':0},
+            "bowlBallsTotal": 25, "bowlOutsTotal": 1,
             "bowlWides":1, "bowlNoballs":0,
             "position": ["7"], "runs": 0, "balls": 0, "fours":0, "sixes":0, "how_out": "Did Not Bat",
-            # Derived fields will be calculated by _preprocess_player_stats based on these defaults
-            "batRunDenominationsObject": {}, "batOutTypesObject": {}, "batOutsRate": 0.08, # 2/25
-            "bowlRunDenominationsObject": {}, "bowlOutTypesObject": {}, "bowlOutsRate": 0.04, # 1/25
+            "byBatsman": {}, "byBowler": {}, # Ensure these are present
+            "batRunDenominationsObject": {}, "batOutTypesObject": {}, "batOutsRate": 0.08,
+            "bowlRunDenominationsObject": {}, "bowlOutTypesObject": {}, "bowlOutsRate": 0.04,
             "bowlWideRate": 0.04, "bowlNoballRate": 0.0, "catchRate": 0.0,
-            "overNumbersObject": {str(i):0.05 for i in range(20)} # Uniform proficiency
+            "overNumbersObject": {str(i):0.05 for i in range(20)}
         }
 
     def _preprocess_player_stats(self, initial, raw_stats_input):
-        # Start with a deep copy of a complete placeholder structure to ensure all keys exist
-        # Then update with values from raw_stats_input if available
-        processed = copy.deepcopy(self._create_placeholder_player_stats(initial))
+        placeholder = self._create_placeholder_player_stats(initial)
+        if raw_stats_input is None:
+            processed = copy.deepcopy(placeholder)
+            logging.warning(f"Using full placeholder for {initial} due to missing raw_stats_input.")
+        else:
+            processed = copy.deepcopy(raw_stats_input)
+            for p_key, p_value in placeholder.items():
+                if p_key not in processed: # Key missing from raw_stats
+                    processed[p_key] = copy.deepcopy(p_value)
+                # If key is present but should be a dict and isn't (e.g. data error from raw_stats)
+                elif isinstance(p_value, dict) and not isinstance(processed.get(p_key), dict):
+                     logging.warning(f"Correcting malformed dict for key '{p_key}' in player {initial}.")
+                     processed[p_key] = copy.deepcopy(p_value)
+                # Ensure nested dicts like byBatsman also get their structure if partially present
+                elif isinstance(p_value, dict) and isinstance(processed.get(p_key), dict):
+                    for inner_key, inner_default_value in p_value.items():
+                        if inner_key not in processed[p_key]:
+                             processed[p_key][inner_key] = copy.deepcopy(inner_default_value)
 
-        if raw_stats_input: # If actual raw stats were found
-            # Update only the keys present in raw_stats_input, keeping defaults from placeholder for others
-            for key, value in raw_stats_input.items():
-                if isinstance(value, dict): # For nested dicts like batRunDenominations
-                    processed[key].update({str(k_inner):v_inner for k_inner, v_inner in value.items()})
-                else:
-                    processed[key] = value
-        else: # raw_stats_input was None, already using full placeholder
-            logging.warning(f"Using full placeholder for {initial} as no raw stats were provided to _preprocess.")
 
-        # Ensure playerInitials and displayName are correctly set from the initial passed to this function
-        processed['playerInitials'] = initial
-        processed['displayName'] = initial
+        processed['playerInitials'] = initial # Ensure this is always correct
+        processed['displayName'] = initial  # Ensure this is always correct
 
-        # Batting stats processing
         bat_balls = processed.get('batBallsTotal', 0); bat_balls = 1 if bat_balls == 0 else bat_balls
         processed['batRunDenominationsObject'] = { str(k): v / bat_balls for k, v in processed.get('batRunDenominations', {}).items()}
         processed['batOutTypesObject'] = {str(k): v / bat_balls for k, v in processed.get('batOutTypes', {}).items()}
         processed['batOutsRate'] = processed.get('batOutsTotal', 0) / bat_balls
 
-        # Bowling stats processing
         bowl_balls = processed.get('bowlBallsTotal', 0); bowl_balls = 1 if bowl_balls == 0 else bowl_balls
         processed['bowlRunDenominationsObject'] = { str(k): v / bowl_balls for k, v in processed.get('bowlRunDenominations', {}).items()}
         processed['bowlOutTypesObject'] = { str(k): v / bowl_balls for k, v in processed.get('bowlOutTypes', {}).items()}
@@ -159,47 +150,36 @@ class MatchSimulator:
         matches = processed.get('matches', 1); matches = 1 if matches == 0 else matches
         processed['catchRate'] = processed.get('catches', 0) / matches
 
-        # Over proficiency
         over_obj_processed = {str(i): 0.0 for i in range(20)}
-        raw_over_numbers = processed.get('overNumbers', []) # This should be a list of overs bowled, not an object here
+        raw_over_numbers = processed.get('overNumbers', [])
         if isinstance(raw_over_numbers, list):
             over_counts = {str(i): 0 for i in range(20)}
-            for over_num_val in raw_over_numbers: # Iterate over the list of overs bowled
+            for over_num_val in raw_over_numbers:
                 over_num_str = str(over_num_val)
                 if over_num_str in over_counts: over_counts[over_num_str] +=1
             for k_over in over_obj_processed: over_obj_processed[k_over] = over_counts[k_over] / matches if matches > 0 else 0.0
-        elif isinstance(raw_over_numbers, dict) : # If it was already an object (e.g. from placeholder)
+        elif isinstance(raw_over_numbers, dict) :
              for k_over, v_over in raw_over_numbers.items():
                 if str(k_over) in over_obj_processed: over_obj_processed[str(k_over)] = v_over
-
         processed['overNumbersObject'] = over_obj_processed
-        return processed
 
-    # ... (rest of the class methods: _get_empty_innings_structure, get_minimal_state_for_session, load_from_saved_state, etc. remain largely the same)
-    # Minor correction in _replay_ball_log for key names if ball_event structure was updated
-    # The key methods like _initialize_batting_order_and_bowlers, _setup_innings, perform_toss,
-    # _calculate_dynamic_probabilities, _select_next_bowler, simulate_one_ball, _end_innings, get_game_state
-    # should be copied from the previous complete version of the file.
-    # For brevity, I will only show the changed __init__ and the dependent _initialize_fresh_game_state and _preprocess_player_stats.
-    # The rest of the file is assumed to be the same as the last successfully written version.
+        # Ensure byBatsman and byBowler are dictionaries, even if empty
+        if not isinstance(processed.get('byBatsman'), dict): processed['byBatsman'] = {}
+        if not isinstance(processed.get('byBowler'), dict): processed['byBowler'] = {}
+
+        return processed
 
     def _get_empty_innings_structure(self):
         return {'score': 0, 'wickets': 0, 'balls_bowled': 0, 'legal_balls_bowled':0, 'overs_completed': 0,
                 'log': [], 'batting_tracker': {}, 'bowling_tracker': {},
                 'batting_team_code': None, 'bowling_team_code': None}
 
-    def _initialize_player_trackers(self, batting_team_code_for_innings, bowling_team_code_for_innings):
-        # This method is effectively replaced by direct initialization in _setup_innings and _replay_ball_log's setdefault
-        pass
-
     def _initialize_batting_order_and_bowlers(self):
         for team_code_iter, player_stats_pool in [(self.team1_code, self.team1_players_stats), (self.team2_code, self.team2_players_stats)]:
             ordered_initials = self.all_teams_data.get(team_code_iter, {}).get('players', [])
-            # Ensure player_stats_pool is not empty and contains valid player initials
             self.batting_order[team_code_iter] = [p_initial for p_initial in ordered_initials if p_initial in player_stats_pool and player_stats_pool[p_initial]]
             if not self.batting_order[team_code_iter] and player_stats_pool:
-                self.batting_order[team_code_iter] = [p_initial for p_initial in player_stats_pool.keys() if player_stats_pool[p_initial]] # Fallback to any order of valid players
-
+                self.batting_order[team_code_iter] = [p_initial for p_initial in player_stats_pool.keys() if player_stats_pool[p_initial]]
             self.bowlers_list[team_code_iter] = [p_initial for p_initial, stats in player_stats_pool.items() if stats and stats.get('BowlingSkill') and stats['BowlingSkill'] not in ["", "None", None, "NA", "unknown", "Unknown"]]
             if not self.bowlers_list[team_code_iter] and player_stats_pool:
                 self.bowlers_list[team_code_iter] = [p_initial for p_initial in player_stats_pool.keys() if player_stats_pool[p_initial]]
@@ -208,24 +188,14 @@ class MatchSimulator:
                 self.bowlers_list[team_code_iter] = [dummy_bowler_initial]
                 if dummy_bowler_initial not in player_stats_pool or not player_stats_pool[dummy_bowler_initial]:
                     player_stats_pool[dummy_bowler_initial] = self._create_placeholder_player_stats(dummy_bowler_initial)
-
-            # Ensure player_stats_pool[p_init] exists before accessing 'overNumbersObject'
-            self.team_bowler_phases[team_code_iter]['powerplay'] = sorted(
-                [p for p in self.bowlers_list[team_code_iter] if p in player_stats_pool],
-                key=lambda p_init: sum(player_stats_pool[p_init]['overNumbersObject'].get(str(o), 0) for o in range(6)), reverse=True)
-            self.team_bowler_phases[team_code_iter]['middle'] = sorted(
-                [p for p in self.bowlers_list[team_code_iter] if p in player_stats_pool],
-                key=lambda p_init: sum(player_stats_pool[p_init]['overNumbersObject'].get(str(o), 0) for o in range(6, 17)), reverse=True)
-            self.team_bowler_phases[team_code_iter]['death'] = sorted(
-                [p for p in self.bowlers_list[team_code_iter] if p in player_stats_pool],
-                key=lambda p_init: sum(player_stats_pool[p_init]['overNumbersObject'].get(str(o), 0) for o in range(17, 20)), reverse=True)
-
+            self.team_bowler_phases[team_code_iter]['powerplay'] = sorted([p for p in self.bowlers_list[team_code_iter] if p in player_stats_pool], key=lambda p_init: sum(player_stats_pool[p_init]['overNumbersObject'].get(str(o), 0) for o in range(6)), reverse=True)
+            self.team_bowler_phases[team_code_iter]['middle'] = sorted([p for p in self.bowlers_list[team_code_iter] if p in player_stats_pool], key=lambda p_init: sum(player_stats_pool[p_init]['overNumbersObject'].get(str(o), 0) for o in range(6, 17)), reverse=True)
+            self.team_bowler_phases[team_code_iter]['death'] = sorted([p for p in self.bowlers_list[team_code_iter] if p in player_stats_pool], key=lambda p_init: sum(player_stats_pool[p_init]['overNumbersObject'].get(str(o), 0) for o in range(17, 20)), reverse=True)
 
     def _setup_innings(self, innings_num):
         self.current_innings_num = innings_num
         current_batting_team = ""
         current_bowling_team = ""
-
         if innings_num == 1:
             current_batting_team = self.batting_team_code
             current_bowling_team = self.bowling_team_code
@@ -234,17 +204,10 @@ class MatchSimulator:
             current_bowling_team = self.batting_team_code
             self.target = self.innings[1]['score'] + 1
             if self.target <= 0: self.target = float('inf')
-
         self.innings[innings_num]['batting_team_code'] = current_batting_team
         self.innings[innings_num]['bowling_team_code'] = current_bowling_team
-        self.innings[innings_num]['batting_tracker'] = {
-            initial_key: {'runs': 0, 'balls': 0, 'fours': 0, 'sixes': 0, 'how_out': 'Did Not Bat', 'order': i + 1}
-            for i, initial_key in enumerate(self.batting_order[current_batting_team])
-        }
-        self.innings[innings_num]['bowling_tracker'] = {
-            initial_key: {'overs_str': "0.0", 'balls_bowled': 0, 'runs_conceded': 0, 'wickets': 0, 'maidens': 0, 'economy': 0.0, 'dots':0}
-            for initial_key in self.bowlers_list[current_bowling_team]
-        }
+        self.innings[innings_num]['batting_tracker'] = { initial_key: {'runs': 0, 'balls': 0, 'fours': 0, 'sixes': 0, 'how_out': 'Did Not Bat', 'order': i + 1} for i, initial_key in enumerate(self.batting_order[current_batting_team])}
+        self.innings[innings_num]['bowling_tracker'] = { initial_key: {'overs_str': "0.0", 'balls_bowled': 0, 'runs_conceded': 0, 'wickets': 0, 'maidens': 0, 'economy': 0.0, 'dots':0} for initial_key in self.bowlers_list[current_bowling_team]}
         self.next_batsman_index[current_batting_team] = 0
         self.current_batsmen['on_strike'] = self._get_next_batsman(current_batting_team, use_index_from_state=True)
         if self.current_batsmen['on_strike']: self.innings[innings_num]['batting_tracker'].setdefault(self.current_batsmen['on_strike'], self._create_placeholder_player_stats(self.current_batsmen['on_strike']))['how_out'] = "Not out"
@@ -254,8 +217,7 @@ class MatchSimulator:
         self.current_bowler = self._select_next_bowler()
 
     def _get_next_batsman(self, team_code, use_index_from_state=True):
-        order = self.batting_order[team_code]
-        current_idx = self.next_batsman_index[team_code] if use_index_from_state else 0
+        order = self.batting_order[team_code]; current_idx = self.next_batsman_index[team_code] if use_index_from_state else 0
         if current_idx < len(order):
             batsman_initial = order[current_idx]
             if use_index_from_state: self.next_batsman_index[team_code] += 1
@@ -272,6 +234,7 @@ class MatchSimulator:
         return self.toss_message, self.toss_winner.upper(), self.toss_decision
 
     def _calculate_dynamic_probabilities(self, batsman_obj, bowler_obj, inn_data, bt_current_ball_stats):
+        # ... (Copy of the existing _calculate_dynamic_probabilities method from the read_files output)
         denAvg = {str(r): (batsman_obj['batRunDenominationsObject'].get(str(r),0) + bowler_obj['bowlRunDenominationsObject'].get(str(r),0))/2 for r in range(7)}
         outAvg = (batsman_obj['batOutsRate'] + bowler_obj['bowlOutsRate']) / 2
         outTypeAvg = copy.deepcopy(bowler_obj['bowlOutTypesObject'])
@@ -343,13 +306,13 @@ class MatchSimulator:
                     denAvg['6'] = max(0.001, denAvg.get('6',0) + adj * 0.5); denAvg['4'] = max(0.001, denAvg.get('4',0) + adj*0.33)
                     denAvg['0'] = max(0.001, denAvg.get('0',0) - adj * 0.17); denAvg['1'] = max(0.001, denAvg.get('1',0) - adj*0.67)
                     outAvg = min(0.95, outAvg + (0.02 + (rrr*1.1)/1000))
-        current_sum = sum(d for d in denAvg.values() if isinstance(d, (int, float)) and d >= 0) # Allow 0 probability
-        if current_sum > 0 : denAvg = {k: max(0, v/current_sum) for k,v in denAvg.items()} # Max 0 to ensure no negative probs
+        current_sum = sum(d for d in denAvg.values() if isinstance(d, (int, float)) and d >= 0)
+        if current_sum > 0 : denAvg = {k: max(0, v/current_sum) for k,v in denAvg.items()}
         else: denAvg = {"0":0.5, "1":0.5}; logging.warning(f"denAvg sum zero for {batsman_obj['playerInitials']} vs {bowler_obj['playerInitials']}. Using fallback.")
         current_out_type_sum = sum(v for v in outTypeAvg.values() if isinstance(v, (int,float)) and v > 0)
         if current_out_type_sum > 0: outTypeAvg = {k: max(0, v/current_out_type_sum) for k,v in outTypeAvg.items()}
         else: outTypeAvg = {"bowled": 1.0}; logging.warning(f"outTypeAvg sum zero for {batsman_obj['playerInitials']} vs {bowler_obj['playerInitials']}. Using fallback 'bowled'.")
-        return denAvg, max(0.01, min(outAvg, 0.95)), outTypeAvg, max(0, wideRate), max(0, noballRate) # Clamp outAvg and rates
+        return denAvg, max(0.01, min(outAvg, 0.95)), outTypeAvg, max(0, wideRate), max(0, noballRate)
 
     def _select_next_bowler(self):
         current_over_to_be_bowled = self.innings[self.current_innings_num]['overs_completed']
@@ -363,7 +326,7 @@ class MatchSimulator:
             tracker_stats = bowler_tracker_this_innings.get(initial, {'balls_bowled': 0, 'runs_conceded': 0, 'wickets': 0})
             if tracker_stats['balls_bowled'] >= 24: continue
             if initial == self.last_over_bowler_initial and len(self.bowlers_list[self.bowling_team_code]) > 1:
-                if len(self.bowlers_list[self.bowling_team_code]) > 2 : continue # Allow back-to-back if only 2 bowlers
+                if len(self.bowlers_list[self.bowling_team_code]) > 2 : continue
             economy = (tracker_stats['runs_conceded'] / (tracker_stats['balls_bowled'] / 6.0)) if tracker_stats['balls_bowled'] > 0 else 99.0
             score = economy - (tracker_stats['wickets'] * 10)
             score += tracker_stats['balls_bowled'] * 0.1
@@ -374,7 +337,7 @@ class MatchSimulator:
                                 if bowler_tracker_this_innings.get(b,{}).get('balls_bowled',0) < 24]
         if not eligible_bowlers:
              if self.bowlers_list[self.bowling_team_code]: return random.choice(self.bowlers_list[self.bowling_team_code])
-             return self.last_over_bowler_initial # Should ideally not happen
+             return self.last_over_bowler_initial
         eligible_bowlers.sort(key=lambda x: x['score'])
         return eligible_bowlers[0]['initial']
 
@@ -385,19 +348,14 @@ class MatchSimulator:
         if not bowler_initial:
             self.current_bowler = self._select_next_bowler(); bowler_initial = self.current_bowler
             if not bowler_initial: self._end_innings(); return {"summary": self.get_game_state(), "ball_event": {"commentary": "Innings ended: No bowler available for " + self.bowling_team_code}}
-
         batsman_obj = self.team1_players_stats.get(batsman_initial) if self.batting_team_code == self.team1_code else self.team2_players_stats.get(batsman_initial)
         bowler_obj = self.team1_players_stats.get(bowler_initial) if self.bowling_team_code == self.team1_code else self.team2_players_stats.get(bowler_initial)
-
-        if not batsman_obj: batsman_obj = self._create_placeholder_player_stats(batsman_initial) # Safeguard
-        if not bowler_obj: bowler_obj = self._create_placeholder_player_stats(bowler_initial) # Safeguard
-
+        if not batsman_obj: batsman_obj = self._create_placeholder_player_stats(batsman_initial)
+        if not bowler_obj: bowler_obj = self._create_placeholder_player_stats(bowler_initial)
         batsman_tracker = inn_data['batting_tracker'].setdefault(batsman_initial, self._create_placeholder_player_stats(batsman_initial))
         bowler_tracker = inn_data['bowling_tracker'].setdefault(bowler_initial, {'overs_str': "0.0", 'balls_bowled': 0, 'runs_conceded': 0, 'wickets': 0, 'maidens': 0, 'economy': 0.0, 'dots':0})
-
         denAvg, outAvg, outTypeAvg, wideRate, noballRate = self._calculate_dynamic_probabilities(batsman_obj, bowler_obj, inn_data, batsman_tracker)
         runs_this_ball = 0; is_wicket_this_ball = False; extra_type_this_ball = None; extra_runs_this_ball = 0; is_legal_delivery = True; commentary_this_ball = ""; wicket_details = {}
-
         if random.uniform(0,1) < wideRate:
             is_legal_delivery = False; extra_type_this_ball = 'Wide'; extra_runs_this_ball = 1
             inn_data['score'] += 1; bowler_tracker['runs_conceded'] += 1; commentary_this_ball = "Wide."
@@ -435,14 +393,11 @@ class MatchSimulator:
                 if runs_this_ball == 6: batsman_tracker['sixes'] = batsman_tracker.get('sixes',0) + 1
                 bowler_tracker['runs_conceded'] += runs_this_ball; commentary_this_ball = f"{batsman_initial} scores {runs_this_ball}."
                 if runs_this_ball == 0 and is_legal_delivery: bowler_tracker['dots'] = bowler_tracker.get('dots',0) + 1
-
         if is_legal_delivery:
             inn_data['balls_bowled'] += 1; inn_data['legal_balls_bowled'] +=1
             batsman_tracker['balls'] += 1; bowler_tracker['balls_bowled'] += 1
-
         ball_in_over_for_log = inn_data['legal_balls_bowled'] % 6
         if is_legal_delivery and ball_in_over_for_log == 0 and inn_data['legal_balls_bowled'] > 0: ball_in_over_for_log = 6
-
         ball_log_entry = {'ball_number': inn_data['legal_balls_bowled'], 'over_str': f"{inn_data['overs_completed']}.{ball_in_over_for_log}",
             'batsman_initial': batsman_initial, 'non_striker_initial': non_striker_initial, 'bowler_initial': bowler_initial,
             'runs_scored': runs_this_ball, 'is_wicket': is_wicket_this_ball, 'wicket_details': wicket_details,
@@ -450,14 +405,11 @@ class MatchSimulator:
             'total_runs_ball': runs_this_ball + extra_runs_this_ball, 'commentary_text': commentary_this_ball,
             'score_after_ball': inn_data['score'], 'wickets_after_ball': inn_data['wickets']}
         inn_data['log'].append(ball_log_entry)
-
         if is_legal_delivery and runs_this_ball % 2 == 1: self.current_batsmen['on_strike'], self.current_batsmen['non_strike'] = self.current_batsmen['non_strike'], self.current_batsmen['on_strike']
-
         max_balls = 120; max_wickets = 10; game_ending_condition = False
         if inn_data['wickets'] >= max_wickets or not self.current_batsmen['on_strike']: game_ending_condition = True
         if self.current_innings_num == 2 and inn_data['score'] >= self.target: game_ending_condition = True
         if inn_data['legal_balls_bowled'] >= max_balls: game_ending_condition = True
-
         if game_ending_condition: self._end_innings()
         elif is_legal_delivery and inn_data['legal_balls_bowled'] % 6 == 0 and inn_data['legal_balls_bowled'] > 0:
             inn_data['overs_completed'] += 1; self.last_over_bowler_initial = self.current_bowler
@@ -472,12 +424,10 @@ class MatchSimulator:
             if b_stats['balls_bowled'] > 0:
                 b_stats['overs_str'] = f"{b_stats['balls_bowled'] // 6}.{b_stats['balls_bowled'] % 6}"
                 b_stats['economy'] = (b_stats['runs_conceded'] / (b_stats['balls_bowled'] / 6.0)) if b_stats['balls_bowled'] > 0 else 0.0
-
         current_batting_team_of_ended_inning = inn_data['batting_team_code']
         current_bowling_team_of_ended_inning = inn_data['bowling_team_code']
-
         if self.current_innings_num == 1:
-            self.batting_team_code = current_bowling_team_of_ended_inning # Swapping for Innings 2
+            self.batting_team_code = current_bowling_team_of_ended_inning
             self.bowling_team_code = current_batting_team_of_ended_inning
             self._setup_innings(2)
         else:
@@ -492,21 +442,19 @@ class MatchSimulator:
     def get_game_state(self):
         current_bat_team_code_for_state = None
         current_bowl_team_code_for_state = None
-        if self.toss_winner: # If toss has happened
+        if self.toss_winner:
             if self.current_innings_num == 1:
                 current_bat_team_code_for_state = self.batting_team_code
                 current_bowl_team_code_for_state = self.bowling_team_code
             elif self.current_innings_num == 2:
-                 # In innings 2, the initial batting/bowling teams are swapped
-                current_bat_team_code_for_state = self.innings[2].get('batting_team_code', self.bowling_team_code) # Fallback to overall if not set yet
+                current_bat_team_code_for_state = self.innings[2].get('batting_team_code', self.bowling_team_code)
                 current_bowl_team_code_for_state = self.innings[2].get('bowling_team_code', self.batting_team_code)
-            else: # Game not started (current_innings_num = 0)
-                current_bat_team_code_for_state = self.batting_team_code # Might be None
-                current_bowl_team_code_for_state = self.bowling_team_code # Might be None
-
+            else:
+                current_bat_team_code_for_state = self.batting_team_code
+                current_bowl_team_code_for_state = self.bowling_team_code
         return {"team1_code": self.team1_code.upper(), "team2_code": self.team2_code.upper(),
             "current_innings_num": self.current_innings_num, "innings_data": self.innings,
-            "on_strike": self.current_batsmen['on_strike'], "non_strike": self.current_batsmen['non_strike'],
+            "on_strike": self.current_batsmen['on_strike'], "non_striker": self.current_batsmen['non_strike'],
             "current_bowler": self.current_bowler, "target_score": self.target, "game_over": self.game_over,
             "match_winner": self.match_winner.upper() if self.match_winner and self.match_winner != "Tie" else self.match_winner,
             "win_message": self.win_message, "toss_message": self.toss_message,
