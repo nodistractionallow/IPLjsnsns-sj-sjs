@@ -20,7 +20,6 @@ if not os.path.exists(TMP_LOG_DIR):
         os.makedirs(TMP_LOG_DIR)
     except OSError as e:
         logging.error(f"Error creating temporary log directory {TMP_LOG_DIR}: {e}")
-        # Depending on the application's needs, you might want to exit or handle this more gracefully.
 
 
 # --- Helper Functions ---
@@ -81,10 +80,8 @@ def process_batting_innings(bat_tracker_original):
     return bat_tracker, wickets
 # --- End Helper Functions ---
 
-# Ensure scores directory exists for mainconnect.py (original functionality)
 scores_dir_path = os.path.join(os.getcwd(), "scores")
 os.makedirs(scores_dir_path, exist_ok=True)
-# Clean scores folder before starting (optional, based on doipl.py behavior)
 for f_remove in os.listdir(scores_dir_path):
     if os.path.isfile(os.path.join(scores_dir_path, f_remove)):
         try: os.remove(os.path.join(scores_dir_path, f_remove))
@@ -94,9 +91,9 @@ for f_remove in os.listdir(scores_dir_path):
 @app.route('/', methods=['GET'])
 def index():
     teams_data = load_teams()
-    session.pop('full_match_data', None) # For old session storage method (if any)
-    session.pop('sim_state', None)       # For MatchSimulator based session state (if any)
-    session.pop('replay_match_id', None) # For file-based session state
+    session.pop('full_match_data', None)
+    session.pop('sim_state', None)
+    session.pop('replay_match_id', None)
     return render_template('index.html', teams=teams_data, scorecard_data=None)
 
 @app.route('/generate_scorecard', methods=['POST'])
@@ -112,10 +109,17 @@ def generate_scorecard():
 
     if simulation_type == 'direct':
         match_results = mainconnect.game(manual=False, sentTeamOne=team1_code, sentTeamTwo=team2_code, switch="webapp")
+
+        team1_s_name = teams_data.get(team1_code, {}).get('name', team1_code)
+        team2_s_name = teams_data.get(team2_code, {}).get('name', team2_code)
+
         innings1_battracker_processed, wickets1_fallen = process_batting_innings(match_results.get("innings1Battracker", {}))
         innings2_battracker_processed, wickets2_fallen = process_batting_innings(match_results.get("innings2Battracker", {}))
+
         scorecard_data_for_template = {
-            "team1": team1_code, "team2": team2_code, "tossMsg": match_results.get("tossMsg"),
+            "team1": team1_code, "team2": team2_code,
+            "match_teams_title": f"{team1_s_name} vs {team2_s_name}", # Added match title
+            "tossMsg": match_results.get("tossMsg"),
             "innings1BatTeam": match_results.get("innings1BatTeam"), "innings1Runs": match_results.get("innings1Runs"),
             "innings1Wickets": wickets1_fallen, "innings1Balls": match_results.get("innings1Balls", 0),
             "innings1Battracker": innings1_battracker_processed, "innings1Bowltracker": match_results.get("innings1Bowltracker"),
