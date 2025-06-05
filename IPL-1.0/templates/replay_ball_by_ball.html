@@ -69,7 +69,7 @@
         #led-display { text-align: center; padding: 15px; background-color: #111; border-radius: 8px; margin-bottom: 15px; font-size: 1.5em; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; }
         #led-display span { padding: 8px 15px; border-radius: 5px; min-width: 80px; display: inline-block; margin: 5px; text-align:center; }
         #led-ball-outcome { font-weight: bold; }
-        .led-runs-0 { background-color: #2ecc71; color: white; }
+        .led-runs-0 { background-color: #7f8c8d; color: white; } /* Changed: Grey for dot ball */
         .led-runs-123 { background-color: #ecf0f1; color: #2c3e50; }
         .led-runs-456 { background-color: #f1c40f; color: #333; }
         .led-wicket { background-color: #e74c3c; color: white; }
@@ -92,23 +92,49 @@
         /* Bottom Control Bar Styles START */
         .bottom-control-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background-color: #1e272e; color: white; padding: 10px 0;
+            background-color: #1e272e; color: white; padding: 12px 0; /* Slightly more padding */
             display: flex; justify-content: space-evenly; align-items: center;
             z-index: 1010; box-shadow: 0 -2px 8px rgba(0,0,0,0.3); box-sizing: border-box;
         }
         .control-bar-button {
-            background-color: #f1c40f; color: #1e272e; border: none;
-            padding: 10px 18px; border-radius: 20px; cursor: pointer;
-            font-weight: bold; font-size: 0.9em; transition: background-color 0.2s ease; margin: 0 5px;
+            background-color: #2c3e50; /* Darker, matching select bg */
+            color: #f1c40f;           /* Yellow text */
+            border: 1px solid #f1c40f; /* Yellow border */
+            padding: 10px 18px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: background-color 0.2s ease, color 0.2s ease;
+            margin: 0 8px; /* Adjusted margin */
         }
-        .control-bar-button:hover { background-color: #e0b804; }
-        .control-bar-button:disabled { background-color: #576574; color: #a5b1c2; cursor: not-allowed; }
+        .control-bar-button:hover {
+            background-color: #f1c40f; /* Yellow background on hover */
+            color: #1e272e;           /* Dark text on hover */
+            border-color: #f1c40f;    /* Keep border color or make it match new bg */
+        }
+        .control-bar-button:disabled {
+            background-color: #3a3a3a; /* Darker grey for disabled */
+            color: #777777;
+            border-color: #555555;
+            cursor: not-allowed;
+        }
         .control-bar-select {
-            padding: 8px 10px; border-radius: 5px; border: 1px solid #f1c40f;
-            background-color: #2c3e50; color: white; font-size: 0.9em; margin: 0 5px;
+            padding: 9px 12px; /* Slightly adjust padding for consistency */
+            border-radius: 5px; /* Keep or match button radius if desired, 5px is fine */
+            border: 1px solid #f1c40f;
+            background-color: #2c3e50;
+            color: white;
+            font-size: 0.9em;
+            margin: 0 5px;
         }
         .speed-control-container { display: flex; align-items: center; margin: 0 5px; }
-        .speed-control-container label { margin-right: 8px; font-weight: normal; font-size: 0.9em; }
+        .speed-control-container label {
+            margin-right: 8px;
+            font-weight: normal;
+            font-size: 0.9em;
+            color: #ecf0f1; /* Lighter text for label for better readability against dark bar */
+        }
         /* Bottom Control Bar Styles END */
 
         /* Final Scorecard Table Styles START */
@@ -130,6 +156,50 @@
         }
         .result-highlight-replay h4 {color: white;}
          /* Final Scorecard Table Styles END */
+
+        /* CSS for Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85); /* Dark overlay */
+            z-index: 2000; /* High z-index */
+            display: none; /* Hidden by default */
+            align-items: center; /* For centering content if needed, though content will be scrollable */
+            justify-content: center;
+            padding: 20px; /* Padding for smaller screens, content will define its own max-width */
+            box-sizing: border-box;
+        }
+
+        .modal-content {
+            background-color: #2c3e50; /* Match existing style */
+            padding: 25px;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 900px; /* Max width for the scorecard content */
+            max-height: 90vh; /* Max height */
+            overflow-y: auto; /* Scrollable content */
+            position: relative; /* For positioning the close button */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .close-modal-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #f1c40f; /* Accent color */
+            background: none;
+            border: none;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-modal-button:hover {
+            color: #ffffff; /* Brighter on hover */
+        }
     </style>
 </head>
 <body>
@@ -171,9 +241,17 @@
         <div class="section commentary-box"><h3>Commentary</h3><div id="last-ball-commentary">Match Replay Ready. Click Next Ball or Auto-Play.</div></div>
         <div class="section full-log-box"><h3>Full Log (Current Innings)</h3><div id="full-innings-log"></div></div>
 
-        <div id="finalScorecardDisplay" style="display: none; margin-top: 25px; padding: 15px; background-color: #2c3e50; border-radius: 8px;">
-            <h2 style="text-align: center; color: #f1c40f; margin-bottom: 20px;">Full Match Scorecard</h2>
+        <div id="firstInningsScorecardDisplay" style="display: none; margin-top: 20px; padding: 15px; background-color: #283740; border-radius: 8px;">
+            <h3 style="text-align: center; color: #f1c40f; margin-bottom: 15px;">First Innings Scorecard</h3>
             {# Content will be generated by JavaScript #}
+        </div>
+
+        <div id="finalScorecardModal" class="modal-overlay" style="display: none;">
+            <div id="finalScorecardDisplay" class="modal-content" style="margin-top: 0;">
+                <button id="closeScorecardModalBtn" class="close-modal-button">&times;</button>
+                <h2 style="text-align: center; color: #f1c40f; margin-bottom: 20px;">Full Match Scorecard</h2>
+                {# Content will be generated by JavaScript by generateFullScorecardHTML() #}
+            </div>
         </div>
     </div>
 
@@ -222,6 +300,9 @@
         const lastBallCommentaryEl = document.getElementById('last-ball-commentary');
         const fullInningsLogEl = document.getElementById('full-innings-log');
         const finalScorecardDiv = document.getElementById('finalScorecardDisplay');
+        const firstInningsScorecardDiv = document.getElementById('firstInningsScorecardDisplay');
+        const finalScorecardModal = document.getElementById('finalScorecardModal');
+        const closeScorecardModalBtn = document.getElementById('closeScorecardModalBtn');
 
 
         let innings1Log = fullMatchData.innings1_log || [];
@@ -243,32 +324,74 @@
         }
 
         function parseEventStringForLed(eventString) {
-            let outcomeText = "..."; let outcomeClass = "led-default";
-            const normalizedEvent = eventString.toUpperCase(); let actionPart = "";
-            const scoreMarker = " SCORE:"; const toMarker = " TO ";
-            const toMarkerIndex = normalizedEvent.indexOf(toMarker);
-            if (toMarkerIndex !== -1) {
-                const fromBatsmanToEnd = normalizedEvent.substring(toMarkerIndex + toMarker.length);
-                const scoreIndex = fromBatsmanToEnd.indexOf(scoreMarker);
-                if (scoreIndex !== -1) {
-                    const batsmanAndOutcome = fromBatsmanToEnd.substring(0, scoreIndex).trim();
-                    const lastSpace = batsmanAndOutcome.lastIndexOf(" ");
-                    actionPart = (lastSpace === -1) ? batsmanAndOutcome : batsmanAndOutcome.substring(lastSpace + 1);
+            let outcomeText = "---";
+            let outcomeClass = "led-default"; // Default style
+            const upperEvent = eventString.toUpperCase();
+
+            // Extract the core part of the event before "SCORE:"
+            const scoreIndex = upperEvent.indexOf(" SCORE:");
+            if (scoreIndex === -1) return { outcomeText, outcomeClass }; // Should not happen with valid logs
+
+            const coreEventPart = upperEvent.substring(0, scoreIndex).trim(); // e.g., "0.1 JADEJA TO PANT 1" or "0.2 JADEJA TO PANT W" or "0.4 JADEJA TO PANT WIDE"
+
+            // Check for Wicket first
+            // Wicket indicator can be " W " in the core part or descriptive text after score
+            const wicketInCore = coreEventPart.includes(" W "); // e.g. "PLAYER W"
+            const caughtBy = upperEvent.includes("CAUGHT BY");
+            const bowled = upperEvent.includes("BOWLED");
+            const runOut = upperEvent.includes("RUN OUT"); // Check this specifically
+            const lbw = upperEvent.includes("LBW");
+            const stumped = upperEvent.includes("STUMPED");
+            const hitWicket = upperEvent.includes("HIT WICKET");
+
+            if (wicketInCore || caughtBy || bowled || runOut || lbw || stumped || hitWicket) {
+                outcomeText = "WICKET";
+                outcomeClass = "led-wicket";
+                if (runOut) outcomeText = "RUN OUT";
+                else if (bowled) outcomeText = "BOWLED";
+                else if (caughtBy) outcomeText = "CAUGHT";
+                // Add other specific wicket types if needed for outcomeText
+            } else if (coreEventPart.includes(" WIDE")) { // Check for WIDE
+                outcomeText = "WIDE";
+                outcomeClass = "led-extra";
+            } else if (coreEventPart.includes(" NOBALL") || coreEventPart.includes(" NO BALL")) { // Check for NO BALL
+                outcomeText = "NO BALL";
+                outcomeClass = "led-extra";
+            } else {
+                // Extract runs: the last part of coreEventPart, assuming it's like "... PLAYER {RUNS}"
+                const parts = coreEventPart.split(" ");
+                const potentialRun = parts[parts.length - 1];
+
+                if (potentialRun === "0" || coreEventPart.includes("NO RUN")) {
+                    outcomeText = "0"; // Standardize to "0"
+                    outcomeClass = "led-runs-0";
+                } else if (potentialRun === "1") {
+                    outcomeText = "1";
+                    outcomeClass = "led-runs-123";
+                } else if (potentialRun === "2") {
+                    outcomeText = "2";
+                    outcomeClass = "led-runs-123";
+                } else if (potentialRun === "3") {
+                    outcomeText = "3";
+                    outcomeClass = "led-runs-123";
+                } else if (potentialRun === "4" || coreEventPart.includes("FOUR")) {
+                    outcomeText = "4";
+                    outcomeClass = "led-runs-456";
+                } else if (potentialRun === "5") { // 5 runs are rare but possible (overthrows)
+                    outcomeText = "5";
+                    outcomeClass = "led-runs-456";
+                } else if (potentialRun === "6" || coreEventPart.includes("SIX")) {
+                    outcomeText = "6";
+                    outcomeClass = "led-runs-456";
+                } else {
+                    // If it's not a recognized number, keep default or try to show it
+                    outcomeText = potentialRun; // Could be an issue if parsing fails
+                    outcomeClass = "led-default";
                 }
             }
-            if (normalizedEvent.includes(" WICKET") || (actionPart === "W" && !normalizedEvent.includes("WIDE"))) { outcomeText = "WICKET"; outcomeClass = "led-wicket"; }
-            else if (normalizedEvent.includes(" WIDE") || actionPart === "WIDE") { outcomeText = "WIDE"; outcomeClass = "led-extra"; }
-            else if (normalizedEvent.includes("NO BALL") || normalizedEvent.includes("NOBALL") || actionPart === "NOBALL") { outcomeText = "NO BALL"; outcomeClass = "led-extra"; }
-            else if (actionPart === "6" || normalizedEvent.includes("SIX!")) { outcomeText = "SIX"; outcomeClass = "led-runs-456"; }
-            else if (actionPart === "4") { outcomeText = "FOUR"; outcomeClass = "led-runs-456"; }
-            else if (actionPart === "5") { outcomeText = "5 RUNS"; outcomeClass = "led-runs-456"; }
-            else if (actionPart === "3") { outcomeText = "3 RUNS"; outcomeClass = "led-runs-123"; }
-            else if (actionPart === "2") { outcomeText = "2 RUNS"; outcomeClass = "led-runs-123"; }
-            else if (actionPart === "1") { outcomeText = "1 RUN"; outcomeClass = "led-runs-123"; }
-            else if (actionPart === "0" || normalizedEvent.includes("NO RUN")) { outcomeText = "NO RUN"; outcomeClass = "led-runs-0"; }
-            else if (actionPart) { outcomeText = actionPart; }
             return { outcomeText, outcomeClass };
         }
+
 
         function updateUIDisplay(logEntry) {
             runningScoreInInnings = logEntry.runs; runningWicketsInInnings = logEntry.wickets;
@@ -318,7 +441,45 @@
                 targetToChase = fullMatchData.innings1_runs + 1;
                 targetScoreEl.textContent = targetToChase; runsNeededEl.textContent = targetToChase;
                 ballsRemainingEl.textContent = 120; targetInfoEl.classList.remove('hidden');
-            } else { targetInfoEl.classList.add('hidden'); }
+                displayFirstInningsScorecard(); // New call
+            } else {
+                targetInfoEl.classList.add('hidden');
+                if (firstInningsScorecardDiv) firstInningsScorecardDiv.style.display = 'none'; // Hide if restarting replay
+            }
+        }
+
+        function displayFirstInningsScorecard() {
+            const firstInningsDiv = document.getElementById('firstInningsScorecardDisplay');
+            if (!firstInningsDiv || !fullMatchData) return;
+
+            const teamsDataForFunc = {
+                [fullMatchData.team1_code.toLowerCase()]: fullMatchData.team1_data,
+                [fullMatchData.team2_code.toLowerCase()]: fullMatchData.team2_data
+            };
+
+            let firstInningsHtml = generateInningsHTML(
+                1, // Innings Number
+                fullMatchData.innings1_bat_team,
+                (fullMatchData.innings1_bat_team.toLowerCase() === fullMatchData.team1_code.toLowerCase() ? fullMatchData.team2_code : fullMatchData.team1_code), // Bowling team
+                fullMatchData.innings1_runs,
+                fullMatchData.innings1_wickets,
+                fullMatchData.innings1_balls,
+                fullMatchData.innings1_battracker,
+                fullMatchData.innings1_bowltracker,
+                teamsDataForFunc
+            );
+
+            // Remove the <hr> from the end of the generated HTML for the first innings display,
+            // as it's not the end of the full match scorecard.
+            const hrTag = '<hr style="border-color: #444; margin-top: 20px; margin-bottom: 10px;">';
+            if (firstInningsHtml.endsWith(hrTag)) {
+                firstInningsHtml = firstInningsHtml.substring(0, firstInningsHtml.length - hrTag.length);
+            }
+
+            firstInningsDiv.innerHTML = '<h3 style="text-align: center; color: #f1c40f; margin-bottom: 15px;">First Innings Scorecard</h3>' + firstInningsHtml;
+            firstInningsDiv.style.display = 'block';
+            // Optional: Scroll to this scorecard
+            // firstInningsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function generateInningsHTML(inningsNum, batTeamCode, bowlTeamCode, inningsRuns, inningsWickets, inningsBalls, battracker, bowltracker, teamsFullData) {
@@ -410,31 +571,52 @@
             startAutoPlayBtn.disabled = false;
             pauseAutoPlayBtn.classList.add('hidden');
             simSpeedSelect.disabled = false;
-            finalScorecardDiv.style.display = 'none'; // Hide final scorecard at start
+            // finalScorecardDiv.style.display = 'none'; // Content area, not modal itself
+            if (finalScorecardModal) finalScorecardModal.style.display = 'none'; // Hide modal at start
+            if (firstInningsScorecardDiv) firstInningsScorecardDiv.style.display = 'none';
         }
 
         function handleEndOfMatch() {
             winMessageContainerEl.textContent = fullMatchData.win_msg || "Match Concluded.";
-            winMessageContainerEl.classList.remove('hidden');
+            winMessageContainerEl.classList.remove('hidden'); // Show text message on main page
             disableControls();
 
             const scorecardHTML = generateFullScorecardHTML(fullMatchData);
-            finalScorecardDiv.innerHTML = scorecardHTML;
-            finalScorecardDiv.style.display = 'block';
-            finalScorecardDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // The h2 title "Full Match Scorecard" is now static in the modal HTML.
+            // So, generateFullScorecardHTML should ideally not add it again.
+            // For now, we assume generateFullScorecardHTML populates the content *within* finalScorecardDisplay.
+            // If generateFullScorecardHTML includes its own h2, it might look duplicated.
+            // Let's adjust generateFullScorecardHTML to not add the main H2 title if it's static in modal.
+            // For this step, we'll populate the div and show modal.
+            finalScorecardDiv.innerHTML = scorecardHTML; // Populate the content area
+
+            if (finalScorecardModal) finalScorecardModal.style.display = 'flex'; // Show modal
+
+            // Hide first innings scorecard if it's still visible
+            if (firstInningsScorecardDiv) {
+                firstInningsScorecardDiv.style.display = 'none';
+            }
         }
 
         function disableControls() {
             nextBallBtn.disabled = true;
+            simSpeedSelect.disabled = true;
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = null;
+            }
+            // Explicitly set final state for both buttons
+            startAutoPlayBtn.classList.add('hidden');
             startAutoPlayBtn.disabled = true;
             pauseAutoPlayBtn.classList.add('hidden');
-            simSpeedSelect.disabled = true;
-            if (autoPlayInterval) clearInterval(autoPlayInterval); autoPlayInterval = null;
+            pauseAutoPlayBtn.disabled = true; // Ensure it's also marked as disabled logically
         }
 
         function handleNextBall() {
             // ... (rest of handleNextBall, setupInningsUI, updateUIDisplay, parseEventStringForLed, formatOver as before) ...
-            if (winMessageContainerEl.classList.contains('hidden') === false) return;
+            // Ensure this doesn't get re-enabled if modal is open.
+            // The winMessageContainerEl check should handle this for nextBallBtn clicks.
+            if (winMessageContainerEl.classList.contains('hidden') === false && finalScorecardModal.style.display === 'none') return; // Allow next ball if modal not shown
             currentBallOverallIndex++;
             if (currentBallOverallIndex >= ballEvents.length) { handleEndOfMatch(); return; }
             let currentBallEventData = ballEvents[currentBallOverallIndex];
@@ -470,14 +652,27 @@
         });
         pauseAutoPlayBtn.addEventListener('click', () => {
             clearInterval(autoPlayInterval); autoPlayInterval = null;
-            pauseAutoPlayBtn.classList.add('hidden'); startAutoPlayBtn.classList.remove('hidden');
-            if (!winMessageContainerEl.classList.contains('hidden')) {
-                nextBallBtn.disabled = true; startAutoPlayBtn.disabled = true;
-            } else {
-                nextBallBtn.disabled = false; startAutoPlayBtn.disabled = false;
+
+            if (!winMessageContainerEl.classList.contains('hidden')) { // Game is over
+                // disableControls() would have been called, but to be safe:
+                startAutoPlayBtn.classList.add('hidden');
+                startAutoPlayBtn.disabled = true;
+                nextBallBtn.disabled = true;
+            } else { // Game not over
+                startAutoPlayBtn.classList.remove('hidden'); // Show Start Auto-Play button
+                startAutoPlayBtn.disabled = false;          // Enable Start Auto-Play button
+                nextBallBtn.disabled = false;               // Enable Next Ball button
             }
-            simSpeedSelect.disabled = false;
+            pauseAutoPlayBtn.classList.add('hidden'); // Hide Pause button itself
+            simSpeedSelect.disabled = false; // Always re-enable speed select when pausing
         });
+
+        if (closeScorecardModalBtn && finalScorecardModal) {
+            closeScorecardModalBtn.addEventListener('click', () => {
+                finalScorecardModal.style.display = 'none';
+            });
+        }
+
         initializeReplay();
     </script>
 </body>
