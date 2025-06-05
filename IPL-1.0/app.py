@@ -112,13 +112,17 @@ def generate_scorecard():
 
         team1_s_name = teams_data.get(team1_code, {}).get('name', team1_code)
         team2_s_name = teams_data.get(team2_code, {}).get('name', team2_code)
+        team1_full_name = teams_data.get(team1_code, {}).get('fullName', team1_s_name)
+        team2_full_name = teams_data.get(team2_code, {}).get('fullName', team2_s_name)
 
         innings1_battracker_processed, wickets1_fallen = process_batting_innings(match_results.get("innings1Battracker", {}))
         innings2_battracker_processed, wickets2_fallen = process_batting_innings(match_results.get("innings2Battracker", {}))
 
         scorecard_data_for_template = {
             "team1": team1_code, "team2": team2_code,
-            "match_teams_title": f"{team1_s_name} vs {team2_s_name}", # Added match title
+            "team1_full_name": team1_full_name,
+            "team2_full_name": team2_full_name,
+            "match_teams_title": f"{team1_full_name} vs {team2_full_name}",
             "tossMsg": match_results.get("tossMsg"),
             "innings1BatTeam": match_results.get("innings1BatTeam"), "innings1Runs": match_results.get("innings1Runs"),
             "innings1Wickets": wickets1_fallen, "innings1Balls": match_results.get("innings1Balls", 0),
