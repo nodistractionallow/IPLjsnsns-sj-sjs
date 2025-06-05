@@ -221,6 +221,58 @@
             box-shadow: 0 0 15px rgba(0, 123, 255, 0.5), 0 0 0 3px rgba(0, 123, 255, 0.7);
         }
         /* Team Grid Styles END */
+
+        /* Toss Animation Styles START */
+        #toss-animation-container {
+            /* display: none; /* Controlled by JS */
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        #coin {
+            width: 80px;
+            height: 80px;
+            background-color: #FFD700; /* Gold */
+            border: 2px solid #DAA520; /* Darker Gold */
+            border-radius: 50%;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.1em;
+            color: #4a4a4a;
+            position: relative;
+            transform-style: preserve-3d; /* For 3D flip if implemented */
+        }
+        .coin-flipping {
+            animation: flip-animation 0.25s linear infinite;
+        }
+        .coin-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backface-visibility: hidden; /* For 3D flip */
+        }
+        .coin-tails {
+             transform: rotateY(180deg); /* For 3D flip */
+        }
+        @keyframes flip-animation { /* Simple continuous spin */
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
+        }
+        #toss-text-announcement {
+            font-size: 1.2em;
+            min-height: 2.5em; /* To prevent layout shifts */
+            color: #333;
+        }
+        /* Toss Animation Styles END */
+
     </style>
 </head>
 <body>
@@ -241,6 +293,7 @@
                              data-full-name="{{ team_data.fullName }}"
                              data-primary-color="{{ team_data.colorPrimary }}"
                              data-secondary-color="{{ team_data.colorSecondary }}"
+                             {% if team_data.hoverColor %}data-hover-color="{{ team_data.hoverColor }}"{% endif %}
                              style="border: 2px solid {{ team_data.colorPrimary }};">
                             <img src="{{ team_data.logo }}" alt="{{ team_data.fullName }} Logo" class="team-logo">
                             <p class="team-name">{{ team_data.name.upper() }}</p>
@@ -256,159 +309,81 @@
             </div>
         {% else %}
             {# This block executes if scorecard_data IS present #}
-            <div style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
+            <div id="play-new-game-button-container" style="text-align: center; margin-top: 20px; margin-bottom: 20px;">
                 <form action="{{ url_for('index') }}" method="get">
                     <button type="submit" class="sim-button">Play New Game</button>
                 </form>
             </div>
         {% endif %}
 
-        {% if scorecard_data %}
-        <div class="scorecard-section">
-            <h3>Match Results</h3>
+        {# Toss Animation Container - Placed here to be controlled by JS #}
+        <div id="toss-animation-container" style="display: none;">
+            <h3 id="toss-sequence-title" style="margin-bottom: 15px;">Coin Toss</h3>
+            <div id="coin">
+                <span class="coin-face coin-heads">H</span>
+                <span class="coin-face coin-tails" style="display: none;">T</span>
+            </div>
+            <p id="toss-text-announcement" style="font-size: 1.2em; min-height: 2.5em;"></p>
+        </div>
 
+
+        {% if scorecard_data %}
+        <div class="scorecard-section"> {# This is the main scorecard display area #}
+            <h3>Match Results</h3>
             {% if scorecard_data.tossMsg %}
-            <div class="match-summary">
+            <div class="match-summary toss-summary"> {# Added class for easier targeting if needed, though tossMsg is also in animation #}
                 <h4>Toss</h4>
                 <p>{{ scorecard_data.tossMsg }}</p>
             </div>
             {% endif %}
-
+            {# ... rest of scorecard ... #}
             {% if scorecard_data.innings1BatTeam %}
             <h4>Innings 1: {{ scorecard_data.innings1BatTeam.upper() }}</h4>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Runs</th>
-                        <th>Balls</th>
-                        <th>SR</th>
-                        <th>How Out</th>
-                    </tr>
-                </thead>
+            <table><thead><tr><th>Player</th><th>Runs</th><th>Balls</th><th>SR</th><th>How Out</th></tr></thead>
                 <tbody>
                     {% for player, stats in scorecard_data.innings1Battracker.items() %}
-                    <tr>
-                        <td>{{ player }}</td>
-                        <td>{{ stats.runs }}</td>
-                        <td>{{ stats.balls }}</td>
-                        <td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td>
-                        <td>{{ stats.how_out }}</td>
-                    </tr>
+                    <tr><td>{{ player }}</td><td>{{ stats.runs }}</td><td>{{ stats.balls }}</td><td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td><td>{{ stats.how_out }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             <p><strong>Total: {{ scorecard_data.innings1Runs }}/{{ scorecard_data.innings1Wickets }} ({{ scorecard_data.innings1Balls // 6 }}.{{ scorecard_data.innings1Balls % 6 }} Overs)</strong></p>
-
             <h5>Bowling: {{ scorecard_data.innings2BatTeam.upper() }}</h5>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Overs</th>
-                        <th>Runs</th>
-                        <th>Wickets</th>
-                        <th>Economy</th>
-                    </tr>
-                </thead>
+            <table><thead><tr><th>Player</th><th>Overs</th><th>Runs</th><th>Wickets</th><th>Economy</th></tr></thead>
                 <tbody>
                     {% for player, stats in scorecard_data.innings1Bowltracker.items() %}
-                    <tr>
-                        <td>{{ player }}</td>
-                        <td>{{ stats.balls // 6 }}.{{ stats.balls % 6 }}</td>
-                        <td>{{ stats.runs }}</td>
-                        <td>{{ stats.wickets }}</td>
-                        <td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td>
-                    </tr>
+                    <tr><td>{{ player }}</td><td>{{ stats.balls // 6 }}.{{ stats.balls % 6 }}</td><td>{{ stats.runs }}</td><td>{{ stats.wickets }}</td><td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% endif %}
-
             {% if scorecard_data.innings1Log %}
-            <div class="commentary-section">
-                <div class="commentary-header" onclick="toggleCommentary('commentary1')">
-                    Innings 1: Over-by-Over Log &#9662;
-                </div>
-                <div class="commentary-content" id="commentary1">
-                    {% for log_entry in scorecard_data.innings1Log %}
-                        <p>{{ log_entry.event }}</p>
-                    {% endfor %}
-                </div>
-            </div>
+            <div class="commentary-section"><div class="commentary-header" onclick="toggleCommentary('commentary1')">Innings 1: Over-by-Over Log &#9662;</div><div class="commentary-content" id="commentary1">{% for log_entry in scorecard_data.innings1Log %}<p>{{ log_entry.event }}</p>{% endfor %}</div></div>
             {% endif %}
-
             <hr>
-
             {% if scorecard_data.innings2BatTeam %}
             <h4>Innings 2: {{ scorecard_data.innings2BatTeam.upper() }}</h4>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Runs</th>
-                        <th>Balls</th>
-                        <th>SR</th>
-                        <th>How Out</th>
-                    </tr>
-                </thead>
+            <table><thead><tr><th>Player</th><th>Runs</th><th>Balls</th><th>SR</th><th>How Out</th></tr></thead>
                 <tbody>
                     {% for player, stats in scorecard_data.innings2Battracker.items() %}
-                    <tr>
-                        <td>{{ player }}</td>
-                        <td>{{ stats.runs }}</td>
-                        <td>{{ stats.balls }}</td>
-                        <td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td>
-                        <td>{{ stats.how_out }}</td>
-                    </tr>
+                    <tr><td>{{ player }}</td><td>{{ stats.runs }}</td><td>{{ stats.balls }}</td><td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td><td>{{ stats.how_out }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             <p><strong>Total: {{ scorecard_data.innings2Runs }}/{{ scorecard_data.innings2Wickets }} ({{ scorecard_data.innings2Balls // 6 }}.{{ scorecard_data.innings2Balls % 6 }} Overs)</strong></p>
-
             <h5>Bowling: {{ scorecard_data.innings1BatTeam.upper() }}</h5>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Player</th>
-                        <th>Overs</th>
-                        <th>Runs</th>
-                        <th>Wickets</th>
-                        <th>Economy</th>
-                    </tr>
-                </thead>
+            <table><thead><tr><th>Player</th><th>Overs</th><th>Runs</th><th>Wickets</th><th>Economy</th></tr></thead>
                 <tbody>
                     {% for player, stats in scorecard_data.innings2Bowltracker.items() %}
-                    <tr>
-                        <td>{{ player }}</td>
-                        <td>{{ stats.balls // 6 }}.{{ stats.balls % 6 }}</td>
-                        <td>{{ stats.runs }}</td>
-                        <td>{{ stats.wickets }}</td>
-                        <td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td>
-                    </tr>
+                    <tr><td>{{ player }}</td><td>{{ stats.balls // 6 }}.{{ stats.balls % 6 }}</td><td>{{ stats.runs }}</td><td>{{ stats.wickets }}</td><td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
             {% endif %}
-
             {% if scorecard_data.innings2Log %}
-            <div class="commentary-section">
-                <div class="commentary-header" onclick="toggleCommentary('commentary2')">
-                    Innings 2: Over-by-Over Log &#9662;
-                </div>
-                <div class="commentary-content" id="commentary2">
-                    {% for log_entry in scorecard_data.innings2Log %}
-                        <p>{{ log_entry.event }}</p>
-                    {% endfor %}
-                </div>
-            </div>
+            <div class="commentary-section"><div class="commentary-header" onclick="toggleCommentary('commentary2')">Innings 2: Over-by-Over Log &#9662;</div><div class="commentary-content" id="commentary2">{% for log_entry in scorecard_data.innings2Log %}<p>{{ log_entry.event }}</p>{% endfor %}</div></div>
             {% endif %}
-
             {% if scorecard_data.winMsg %}
-            <div class="match-summary result-highlight">
-                <h4>Result</h4>
-                <p><strong>{{ scorecard_data.winMsg }}</strong></p>
-            </div>
+            <div class="match-summary result-highlight"><h4>Result</h4><p><strong>{{ scorecard_data.winMsg }}</strong></p></div>
             {% endif %}
         </div>
         {% endif %}
@@ -427,9 +402,93 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            const scorecardDataPresent = {{ scorecard_data is not none | tojson }};
+            const scorecardData = {{ scorecard_data | tojson | safe if scorecard_data else 'null' }};
+            const teamsData = {{ teams | tojson | safe }};
 
-            if (!scorecardDataPresent) { // Only add these listeners if team selection is visible
+            // Toss Animation Logic
+            if (scorecardData && scorecardData.tossMsg && !sessionStorage.getItem('tossAnimationShownForMatch_' + scorecardData.team1 + '_' + scorecardData.team2 + '_' + scorecardData.tossMsg)) {
+                runTossAnimation();
+            }
+
+            function runTossAnimation() {
+                const tossContainer = document.getElementById('toss-animation-container');
+                const coinEl = document.getElementById('coin');
+                const tossTextEl = document.getElementById('toss-text-announcement');
+                const headsFace = coinEl.querySelector('.coin-heads');
+                const tailsFace = coinEl.querySelector('.coin-tails');
+
+                const scorecardSection = document.querySelector('.scorecard-section');
+                const playNewGameButtonContainer = document.getElementById('play-new-game-button-container');
+
+                if (!tossContainer || !coinEl || !tossTextEl || !scorecardSection || (scorecardDataPresent && !playNewGameButtonContainer) ) {
+                    console.error("Toss animation elements or related containers not found!");
+                    // If elements are missing, ensure scorecard is visible if it should be
+                    if (scorecardSection) scorecardSection.style.display = 'block';
+                    if (playNewGameButtonContainer) playNewGameButtonContainer.style.display = 'block';
+                    return;
+                }
+
+                if (scorecardSection) scorecardSection.style.display = 'none';
+                if (playNewGameButtonContainer) playNewGameButtonContainer.style.display = 'none';
+                tossContainer.style.display = 'block';
+
+                const tossMsg = scorecardData.tossMsg;
+                const parts = tossMsg.split(" won the toss and chose to ");
+                const winnerCode = parts[0].trim(); // Trim to remove potential leading/trailing spaces from team codes in tossMsg
+                const choice = parts.length > 1 ? parts[1].trim().toLowerCase() : "bat";
+
+                const team1Code = scorecardData.team1;
+                const team2Code = scorecardData.team2;
+
+                const winnerData = teamsData[winnerCode.toLowerCase()]; // Ensure lookup key is lowercase
+                const winnerName = winnerData ? winnerData.fullName || winnerCode : winnerCode;
+
+                // Determine calling team (the one that lost the toss)
+                let callingTeamName = "Opponent"; // Default
+                const opponentCode = winnerCode.toLowerCase() === team1Code.toLowerCase() ? team2Code : team1Code;
+                const opponentData = teamsData[opponentCode.toLowerCase()];
+                if (opponentData) callingTeamName = opponentData.fullName || opponentCode;
+
+
+                const call = Math.random() < 0.5 ? "Heads" : "Tails";
+                const outcome = Math.random() < 0.5 ? "Heads" : "Tails";
+
+                let sequenceStep = 0;
+                const steps = [
+                    () => { tossTextEl.textContent = `${callingTeamName} calls ${call}!`; coinEl.className = 'coin'; headsFace.style.display = 'block'; tailsFace.style.display = 'none';},
+                    () => { tossTextEl.textContent = "Coin is spinning..."; coinEl.classList.add('coin-flipping'); },
+                    () => { tossTextEl.textContent = "Coin is spinning..."; },
+                    () => {
+                        coinEl.classList.remove('coin-flipping');
+                        headsFace.style.display = outcome === 'Heads' ? 'block' : 'none';
+                        tailsFace.style.display = outcome === 'Tails' ? 'block' : 'none';
+                        tossTextEl.textContent = `It's ${outcome}!`;
+                    },
+                    () => { tossTextEl.innerHTML = `<strong>${tossMsg}</strong>`; },
+                    () => {
+                        tossContainer.style.display = 'none';
+                        if (scorecardSection) scorecardSection.style.display = 'block';
+                        if (playNewGameButtonContainer) playNewGameButtonContainer.style.display = 'block';
+                        sessionStorage.setItem('tossAnimationShownForMatch_' + team1Code + '_' + team2Code + '_' + tossMsg, 'true');
+                    }
+                ];
+
+                function nextStep() {
+                    if (sequenceStep < steps.length) {
+                        steps[sequenceStep]();
+                        sequenceStep++;
+                        let delay = (sequenceStep === 2 || sequenceStep === 3) ? 2000 : 1500;
+                        if (sequenceStep === steps.length -1) delay = 2500; // Longer pause on final message
+                        setTimeout(nextStep, delay);
+                    }
+                }
+                nextStep();
+            }
+
+
+            // Team selection logic (only if scorecard is NOT present)
+            const scorecardDataPresent = {{ scorecard_data is not none | tojson }};
+            if (!scorecardDataPresent) {
                 const teamBoxes = document.querySelectorAll('.team-box');
                 const selectedTeam1Input = document.getElementById('selectedTeam1');
                 const selectedTeam2Input = document.getElementById('selectedTeam2');
@@ -439,11 +498,13 @@
 
                 teamBoxes.forEach(box => {
                     const primaryColor = box.dataset.primaryColor;
+                    const hoverColor = box.dataset.hoverColor;
                     const originalBackgroundColor = box.style.backgroundColor || 'white';
                     const teamNameP = box.querySelector('.team-name');
                     const originalTextColor = teamNameP.style.color || '#333';
 
                     function getContrastYIQ(hexcolor){
+                        if (!hexcolor || !hexcolor.startsWith('#')) return '#333';
                         hexcolor = hexcolor.replace("#", "");
                         var r = parseInt(hexcolor.substr(0,2),16);
                         var g = parseInt(hexcolor.substr(2,2),16);
@@ -452,12 +513,11 @@
                         return (yiq >= 128) ? '#333' : 'white';
                     }
 
-                    const hoverTextColor = getContrastYIQ(primaryColor);
-
                     box.addEventListener('mouseenter', function () {
                         if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
-                            this.style.backgroundColor = primaryColor;
-                            teamNameP.style.color = hoverTextColor;
+                            const bgColorToUse = hoverColor || primaryColor;
+                            this.style.backgroundColor = bgColorToUse;
+                            teamNameP.style.color = getContrastYIQ(bgColorToUse);
                         }
                     });
 
@@ -473,42 +533,41 @@
                         const clickedBoxPrimaryColor = this.dataset.primaryColor;
                         const clickedBoxTextColor = getContrastYIQ(clickedBoxPrimaryColor);
 
-                        if (team1 === teamCode) {
-                            team1 = null;
-                            selectedTeam1Input.value = '';
-                            this.classList.remove('selected-team1');
-                            this.style.backgroundColor = originalBackgroundColor;
-                            teamNameP.style.color = originalTextColor;
-                        } else if (team2 === teamCode) {
-                            team2 = null;
-                            selectedTeam2Input.value = '';
-                            this.classList.remove('selected-team2');
-                            this.style.backgroundColor = originalBackgroundColor;
-                            teamNameP.style.color = originalTextColor;
-                        } else if (!team1) {
-                            team1 = teamCode;
-                            selectedTeam1Input.value = team1;
-                            this.classList.add('selected-team1');
-                            this.style.backgroundColor = clickedBoxPrimaryColor;
-                            teamNameP.style.color = clickedBoxTextColor;
-                        } else if (!team2) {
-                            team2 = teamCode;
-                            selectedTeam2Input.value = team2;
-                            this.classList.add('selected-team2');
-                            this.style.backgroundColor = clickedBoxPrimaryColor;
-                            teamNameP.style.color = clickedBoxTextColor;
+                        if (this.classList.contains('selected-team1')) {
+                            team1 = null; selectedTeam1Input.value = ''; this.classList.remove('selected-team1');
+                            this.style.backgroundColor = originalBackgroundColor; teamNameP.style.color = originalTextColor;
+                        } else if (this.classList.contains('selected-team2')) {
+                            team2 = null; selectedTeam2Input.value = ''; this.classList.remove('selected-team2');
+                            this.style.backgroundColor = originalBackgroundColor; teamNameP.style.color = originalTextColor;
                         } else {
-                            const oldTeam1Box = document.querySelector('.team-box.selected-team1');
-                            if (oldTeam1Box) {
-                                oldTeam1Box.classList.remove('selected-team1');
-                                oldTeam1Box.style.backgroundColor = originalBackgroundColor;
-                                oldTeam1Box.querySelector('.team-name').style.color = originalTextColor;
+                            if (!team1 && teamCode !== team2) {
+                                team1 = teamCode; selectedTeam1Input.value = team1;
+                                this.classList.add('selected-team1');
+                                this.style.backgroundColor = clickedBoxPrimaryColor; teamNameP.style.color = clickedBoxTextColor;
+                            } else if (!team2 && teamCode !== team1) {
+                                team2 = teamCode; selectedTeam2Input.value = team2;
+                                this.classList.add('selected-team2');
+                                this.style.backgroundColor = clickedBoxPrimaryColor; teamNameP.style.color = clickedBoxTextColor;
+                            } else if (team1 && team2) {
+                                const prevTeam1Box = document.querySelector('.team-box.selected-team1');
+                                if(prevTeam1Box) {
+                                    prevTeam1Box.classList.remove('selected-team1');
+                                    prevTeam1Box.style.backgroundColor = '';
+                                    prevTeam1Box.querySelector('.team-name').style.color = originalTextColor;
+                                }
+                                team1 = teamCode; selectedTeam1Input.value = team1;
+                                this.classList.add('selected-team1');
+                                this.style.backgroundColor = clickedBoxPrimaryColor; teamNameP.style.color = clickedBoxTextColor;
+                                if (team1 === team2) {
+                                    const prevTeam2Box = document.querySelector('.team-box.selected-team2');
+                                     if(prevTeam2Box) {
+                                        prevTeam2Box.classList.remove('selected-team2');
+                                        prevTeam2Box.style.backgroundColor = '';
+                                        prevTeam2Box.querySelector('.team-name').style.color = originalTextColor;
+                                    }
+                                    team2 = null; selectedTeam2Input.value = '';
+                                }
                             }
-                            team1 = teamCode;
-                            selectedTeam1Input.value = team1;
-                            this.classList.add('selected-team1');
-                            this.style.backgroundColor = clickedBoxPrimaryColor;
-                            teamNameP.style.color = clickedBoxTextColor;
                         }
                         validateSelections();
                     });
@@ -536,7 +595,7 @@
                         }
                     });
                 }
-            } // end if (!scorecardDataPresent)
+            }
         });
     </script>
 </body>
