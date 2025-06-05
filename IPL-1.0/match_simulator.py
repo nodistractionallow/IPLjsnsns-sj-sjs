@@ -59,28 +59,37 @@ class MatchSimulator:
             self.team2_players_stats[initial] = self._preprocess_player_stats(initial, raw_stats)
 
         # Initialize batting orders and bowler phase lists for BOTH teams (depends on processed stats)
+        # These attributes are initialized first in _initialize_fresh_game_state
         self._initialize_batting_order_and_bowlers()
 
         # If saved_state is provided, load it. This will overwrite parts of the fresh state.
         if saved_state and saved_state.get('toss_winner'):
             self.load_from_saved_state(saved_state)
-        # Else (new game): _initialize_fresh_game_state already set current_innings_num = 0 etc.
-        # app.py will call perform_toss() for a new game.
+        # Else (new game): _initialize_fresh_game_state already set relevant defaults.
+        # app.py will call perform_toss() for a new game which continues setup.
 
 
     def _initialize_fresh_game_state(self):
-        # This method now correctly uses self.team1_code and self.team2_code for next_batsman_index keys
+        # This method now correctly uses self.team1_code and self.team2_code for keys
         self.batting_team_code = None; self.bowling_team_code = None
         self.current_batsmen = {'on_strike': None, 'non_strike': None}
         self.current_bowler = None
         self.last_over_bowler_initial = None
-        self.current_innings_num = 0 # Will be 1 after toss
+        self.current_innings_num = 0 # Will be 1 after toss (or loaded from state)
         self.innings = { 1: self._get_empty_innings_structure(), 2: self._get_empty_innings_structure() }
         self.target = 0; self.game_over = False; self.match_winner = None; self.win_message = ""
         self.toss_winner = None; self.toss_decision = None; self.toss_message = ""
-        self.next_batsman_index = {self.team1_code: 0, self.team2_code: 0}
-        # Player trackers will be initialized by _setup_innings when an innings starts
 
+        # Initialize structures that _initialize_batting_order_and_bowlers will populate
+        self.batting_order = {self.team1_code: [], self.team2_code: []}
+        self.bowlers_list = {self.team1_code: [], self.team2_code: []}
+        self.team_bowler_phases = {
+            self.team1_code: {'powerplay': [], 'middle': [], 'death': []},
+            self.team2_code: {'powerplay': [], 'middle': [], 'death': []}
+        }
+        self.next_batsman_index = {self.team1_code: 0, self.team2_code: 0}
+        # Player trackers are part of the self.innings structure, initialized by _get_empty_innings_structure
+        # and then populated by _setup_innings or load_from_saved_state->_replay_ball_log.
 
     def get_minimal_state_for_session(self):
         return {
