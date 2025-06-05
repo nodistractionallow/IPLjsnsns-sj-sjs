@@ -4,9 +4,24 @@ import mainconnect # Import the game logic from mainconnect.py
 # from match_simulator import MatchSimulator # MatchSimulator is no longer actively used for new game initiation from UI
 import os
 import copy # For deepcopy if needed by process_batting_innings
+import uuid # For unique match IDs
+import logging # For logging errors
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24) # Needed for session management
+app.secret_key = os.urandom(24)
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Temporary directory for storing match logs
+TMP_LOG_DIR = os.path.join(app.root_path, 'tmp_match_logs')
+if not os.path.exists(TMP_LOG_DIR):
+    try:
+        os.makedirs(TMP_LOG_DIR)
+    except OSError as e:
+        logging.error(f"Error creating temporary log directory {TMP_LOG_DIR}: {e}")
+        # Depending on the application's needs, you might want to exit or handle this more gracefully.
+
 
 # --- Helper Functions ---
 def load_teams():
@@ -14,28 +29,22 @@ def load_teams():
         with open('teams/teams.json', 'r') as f:
             return json.load(f)
     except FileNotFoundError:
-        print("Error: teams/teams.json not found. Please ensure the file exists.")
+        logging.error("teams/teams.json not found.")
         return {}
     except json.JSONDecodeError:
-        print("Error: Could not decode JSON from teams/teams.json.")
+        logging.error("Could not decode JSON from teams/teams.json.")
         return {}
 
 def process_batting_innings(bat_tracker_original):
-    """
-    Processes a batting tracker to calculate wickets and update 'how_out' status.
-    Returns a processed tracker and the number of wickets.
-    Important: This function can modify the input bat_tracker, so pass a copy if original is needed elsewhere.
-    """
-    bat_tracker = copy.deepcopy(bat_tracker_original) # Work on a copy
+    bat_tracker = copy.deepcopy(bat_tracker_original)
     wickets = 0
     for player, stats in bat_tracker.items():
-        stats['how_out'] = "Not out" # Default
-        if not stats.get('ballLog'): # Check if ballLog exists and is not empty
+        stats['how_out'] = "Not out"
+        if not stats.get('ballLog'):
             stats['how_out'] = "DNB"
             stats['runs'] = stats.get('runs', '')
             stats['balls'] = stats.get('balls', '')
             continue
-
         wicket_found = False
         for log_entry in stats['ballLog']:
             parts = log_entry.split(':')
@@ -44,7 +53,6 @@ def process_batting_innings(bat_tracker_original):
                 if event_details.startswith("W"):
                     wickets += 1
                     wicket_found = True
-                    # Parsing dismissal details (copied from original app.py)
                     if "-CaughtBy-" in event_details:
                         try:
                             details = event_details.split('-')
@@ -73,18 +81,22 @@ def process_batting_innings(bat_tracker_original):
     return bat_tracker, wickets
 # --- End Helper Functions ---
 
-dir_path = os.path.join(os.getcwd(), "scores")
-os.makedirs(dir_path, exist_ok=True)
-for f_remove in os.listdir(dir_path):
-    if os.path.isfile(os.path.join(dir_path, f_remove)):
-        try: os.remove(os.path.join(dir_path, f_remove))
-        except OSError as e: print(f"Error removing file {f_remove}: {e}")
+# Ensure scores directory exists for mainconnect.py (original functionality)
+scores_dir_path = os.path.join(os.getcwd(), "scores")
+os.makedirs(scores_dir_path, exist_ok=True)
+# Clean scores folder before starting (optional, based on doipl.py behavior)
+for f_remove in os.listdir(scores_dir_path):
+    if os.path.isfile(os.path.join(scores_dir_path, f_remove)):
+        try: os.remove(os.path.join(scores_dir_path, f_remove))
+        except OSError as e: logging.warning(f"Error removing file {f_remove} from scores dir: {e}")
+
 
 @app.route('/', methods=['GET'])
 def index():
     teams_data = load_teams()
-    session.pop('full_match_data', None)
-    session.pop('sim_state', None)
+    session.pop('full_match_data', None) # For old session storage method (if any)
+    session.pop('sim_state', None)       # For MatchSimulator based session state (if any)
+    session.pop('replay_match_id', None) # For file-based session state
     return render_template('index.html', teams=teams_data, scorecard_data=None)
 
 @app.route('/generate_scorecard', methods=['POST'])
@@ -123,7 +135,8 @@ def generate_scorecard():
         processed_bat_tracker2, wickets2_fallen = process_batting_innings(innings2_battracker_original)
         team1_full_data = teams_data.get(team1_code, {})
         team2_full_data = teams_data.get(team2_code, {})
-        full_match_data_for_session = {
+
+        full_match_data_to_save = {
             "toss_msg": match_results.get("tossMsg"), "team1_code": team1_code, "team2_code": team2_code,
             "team1_data": team1_full_data, "team2_data": team2_full_data,
             "innings1_log": match_results.get("innings1Log", []), "innings2_log": match_results.get("innings2Log", []),
@@ -137,57 +150,51 @@ def generate_scorecard():
             "innings1_bowltracker": match_results.get("innings1Bowltracker", {}),
             "innings2_bowltracker": match_results.get("innings2Bowltracker", {})
         }
-        session['full_match_data'] = full_match_data_for_session
+
+        match_id = str(uuid.uuid4())
+        tmp_file_path = os.path.join(TMP_LOG_DIR, f"match_log_{match_id}.json")
+
+        try:
+            with open(tmp_file_path, 'w') as f:
+                json.dump(full_match_data_to_save, f)
+            session['replay_match_id'] = match_id
+        except IOError as e:
+            logging.error(f"Error saving match log to {tmp_file_path}: {e}")
+            return redirect(url_for('index', error_message="Failed to save match data for replay."))
+
         return redirect(url_for('replay_match_view'))
     else:
         return redirect(url_for('index', error_message="Invalid simulation type selected."))
 
 @app.route('/replay_match_view')
 def replay_match_view():
-    match_data = session.get('full_match_data')
-    if not match_data:
-        return redirect(url_for('index', error_message="No match data found to replay. Please start a new simulation."))
-    return render_template('replay_ball_by_ball.html', full_match_data=match_data)
+    match_id = session.get('replay_match_id')
+    if not match_id:
+        return redirect(url_for('index', error_message="No match ID found for replay."))
 
-@app.route('/ball_by_ball_game_view')
-def ball_by_ball_game_view():
-    saved_minimal_state = session.get('sim_state')
-    if not saved_minimal_state:
-        return redirect(url_for('index', error_message="No active simulation found. Please start a new game."))
-    try:
-        simulator = MatchSimulator(
-            team1_code=saved_minimal_state['team1_code'],
-            team2_code=saved_minimal_state['team2_code'],
-            saved_state=saved_minimal_state
-        )
-        initial_game_state = simulator.get_game_state()
-        return render_template('ball_by_ball.html', game_state=initial_game_state)
-    except Exception as e:
-        print(f"Error rehydrating MatchSimulator from session: {e}")
-        import traceback
-        traceback.print_exc()
-        session.pop('sim_state', None)
-        return redirect(url_for('index', error_message=f"Failed to load simulation: {e}"))
+    tmp_file_path = os.path.join(TMP_LOG_DIR, f"match_log_{match_id}.json")
 
-@app.route('/simulate_next_ball', methods=['POST'])
-def simulate_next_ball():
-    saved_minimal_state = session.get('sim_state')
-    if not saved_minimal_state:
-        return jsonify({"error": "No simulation found in session. Please start a new game."}), 400
     try:
-        simulator = MatchSimulator(
-            team1_code=saved_minimal_state['team1_code'],
-            team2_code=saved_minimal_state['team2_code'],
-            saved_state=saved_minimal_state
-        )
-        ball_result = simulator.simulate_one_ball()
-        session['sim_state'] = simulator.get_minimal_state_for_session()
-        return jsonify(ball_result)
-    except Exception as e:
-        print(f"Error during simulate_next_ball: {e}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({"error": f"An error occurred during simulation: {str(e)}"}), 500
+        with open(tmp_file_path, 'r') as f:
+            full_match_data = json.load(f)
+    except FileNotFoundError:
+        logging.error(f"Match log file not found: {tmp_file_path}")
+        session.pop('replay_match_id', None)
+        return redirect(url_for('index', error_message="Match data not found. It might have expired or an error occurred."))
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding match log JSON from {tmp_file_path}: {e}")
+        session.pop('replay_match_id', None)
+        return redirect(url_for('index', error_message="Error reading match data."))
+
+    return render_template('replay_ball_by_ball.html', full_match_data=full_match_data)
+
+# Routes for MatchSimulator based interactive simulation (currently disconnected from main UI flow)
+# @app.route('/ball_by_ball_game_view')
+# def ball_by_ball_game_view():
+#     # ... (code for MatchSimulator based view) ...
+# @app.route('/simulate_next_ball', methods=['POST'])
+# def simulate_next_ball():
+#     # ... (code for MatchSimulator based simulation call) ...
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
