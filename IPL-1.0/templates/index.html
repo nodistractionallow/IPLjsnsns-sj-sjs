@@ -57,9 +57,9 @@
             border-radius: 4px;
             min-width: 100px; /* Ensure select boxes have a decent width */
         }
-        button {
-            padding: 10px 15px; /* Adjusted padding */
-            margin-right: 10px;
+        button { /* Default button style */
+            padding: 10px 15px;
+            margin-right: 10px; /* Default margin, specific buttons can override */
             background-color: #007bff;
             color: white;
             border: none;
@@ -69,52 +69,63 @@
         button:hover {
             background-color: #0056b3; /* Darker shade on hover */
         }
+        .sim-button { /* Style for the new simulation buttons */
+            margin-left: 10px;
+            margin-right: 10px;
+            padding: 10px 20px; /* A bit more prominent */
+        }
+        button:disabled { /* Style for disabled button (though not directly used for sim buttons now) */
+            background-color: #cccccc;
+            color: #666666;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
         .scorecard-section {
             margin-bottom: 20px;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            background-color: #fff; /* Kept white as container has shadow */
+            background-color: #fff;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 15px;
-            border-radius: 5px; /* Rounded corners for table */
-            overflow: hidden; /* Important for border-radius on table */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for tables */
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 12px; /* Increased padding */
+            padding: 12px;
             text-align: left;
         }
         th {
             background-color: #007bff;
             color: white;
-            border-bottom: 2px solid #0056b3; /* Darker blue for header bottom border */
+            border-bottom: 2px solid #0056b3;
         }
         tbody tr:nth-child(odd) {
             background-color: #f9f9f9;
         }
         tbody tr:hover {
-            background-color: #f1f1f1; /* Hover effect for table rows */
+            background-color: #f1f1f1;
         }
         .hidden {
             display: none;
         }
-        .match-summary { /* General style for summary boxes */
+        .match-summary {
             background-color: #e7f3fe;
-            padding: 15px; /* Increased padding */
+            padding: 15px;
             border-radius: 5px;
-            margin-top: 15px; /* Added margin */
-            border: 1px solid #b8daff; /* Added border */
+            margin-top: 15px;
+            border: 1px solid #b8daff;
         }
-        .match-summary h4 { /* Specific for toss heading */
-            text-align: left; /* Align toss heading to left */
+        .match-summary h4 {
+            text-align: left;
             margin-top: 0;
         }
-        .result-highlight { /* New class for the result message */
+        .result-highlight {
             margin-top: 20px;
             background-color: #d1ecf1;
             color: #0c5460;
@@ -125,7 +136,7 @@
         }
         .result-highlight p strong {
             font-size: 1.1em;
-            font-weight: bold; /* Ensure it's bold */
+            font-weight: bold;
         }
         hr {
             border: 0;
@@ -134,7 +145,7 @@
             margin-top: 25px;
             margin-bottom: 25px;
         }
-        p strong { /* For Total: lines */
+        p strong {
             font-size: 1.05em;
         }
         .commentary-section {
@@ -143,7 +154,7 @@
             border-radius: 5px;
         }
         .commentary-header {
-            background-color: #6c757d; /* A neutral color */
+            background-color: #6c757d;
             color: white;
             padding: 10px;
             cursor: pointer;
@@ -155,9 +166,9 @@
         .commentary-content {
             padding: 10px;
             border-top: 1px solid #ddd;
-            max-height: 300px; /* Or adjust as needed */
-            overflow-y: auto; /* Scroll for long commentary */
-            display: none; /* Hidden by default */
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
         }
         .commentary-content p {
             margin: 5px 0;
@@ -168,6 +179,48 @@
         .commentary-content p:last-child {
             border-bottom: none;
         }
+
+        /* Team Grid Styles START */
+        .team-grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 10px;
+        }
+        .team-box {
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .team-box:hover {
+            transform: translateY(-5px) scale(1.03);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .team-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: contain;
+            margin-bottom: 10px;
+            background-color: #ffffff;
+            padding: 5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .team-name {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #333;
+            margin-top: 5px;
+        }
+        .team-box.selected-team1, .team-box.selected-team2 {
+            box-shadow: 0 0 15px rgba(0, 123, 255, 0.5), 0 0 0 3px rgba(0, 123, 255, 0.7);
+        }
+        /* Team Grid Styles END */
     </style>
 </head>
 <body>
@@ -175,23 +228,30 @@
         <h2>Cricket Scorecard Generator</h2>
 
         <div class="team-selection">
-            <h3>Select Teams</h3>
-            <form action="/generate_scorecard" method="post">
-                <label for="team1">Team 1:</label>
-                <select name="team1" id="team1">
-                    {% for team_code, team_players in teams.items() %}
-                        <option value="{{ team_code }}">{{ team_code.upper() }}</option>
-                    {% endfor %}
-                </select>
+            <h3>Select Teams (Click to Select)</h3>
+            <form id="scorecardForm" action="/generate_scorecard" method="post">
+                <input type="hidden" name="selectedTeam1" id="selectedTeam1"> <!-- name attribute changed -->
+                <input type="hidden" name="selectedTeam2" id="selectedTeam2"> <!-- name attribute changed -->
 
-                <label for="team2">Team 2:</label>
-                <select name="team2" id="team2">
-                    {% for team_code, team_players in teams.items() %}
-                        <option value="{{ team_code }}">{{ team_code.upper() }}</option>
+                <div class="team-grid-container">
+                    {% for team_code, team_data in teams.items() %}
+                    <div class="team-box"
+                         data-team-code="{{ team_code }}"
+                         data-full-name="{{ team_data.fullName }}"
+                         data-primary-color="{{ team_data.colorPrimary }}"
+                         data-secondary-color="{{ team_data.colorSecondary }}"
+                         style="border: 2px solid {{ team_data.colorPrimary }};">
+                        <img src="{{ team_data.logo }}" alt="{{ team_data.fullName }} Logo" class="team-logo">
+                        <p class="team-name">{{ team_data.name.upper() }}</p>
+                    </div>
                     {% endfor %}
-                </select>
-
-                <button type="submit">Generate Scorecard</button>
+                </div>
+                <!-- New Simulation Options Buttons START -->
+                <div class="simulation-options" style="text-align: center; margin-top: 20px; display: none;">
+                    <button type="submit" name="simulation_type" value="direct" id="directSimButton" class="sim-button">Direct Scorecard</button>
+                    <button type="submit" name="simulation_type" value="ball_by_ball" id="ballByBallSimButton" class="sim-button">Ball-by-Ball Simulation</button>
+                </div>
+                <!-- New Simulation Options Buttons END -->
             </form>
         </div>
 
@@ -348,15 +408,123 @@
     <script>
         function toggleCommentary(commentaryId) {
             var content = document.getElementById(commentaryId);
-            var header = content.previousElementSibling; // Get the commentary-header
+            var header = content.previousElementSibling;
             if (content.style.display === "none" || content.style.display === "") {
                 content.style.display = "block";
-                header.innerHTML = header.innerHTML.replace("▼", "▲"); // Change to up arrow (using actual characters for safety)
+                header.innerHTML = header.innerHTML.replace("▼", "▲");
             } else {
                 content.style.display = "none";
-                header.innerHTML = header.innerHTML.replace("▲", "▼"); // Change to down arrow
+                header.innerHTML = header.innerHTML.replace("▲", "▼");
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const teamBoxes = document.querySelectorAll('.team-box');
+            const selectedTeam1Input = document.getElementById('selectedTeam1');
+            const selectedTeam2Input = document.getElementById('selectedTeam2');
+            const simulationOptionsDiv = document.querySelector('.simulation-options'); // Get the new div
+            let team1 = null;
+            let team2 = null;
+
+            teamBoxes.forEach(box => {
+                const primaryColor = box.dataset.primaryColor;
+                const originalBackgroundColor = box.style.backgroundColor || 'white';
+                const teamNameP = box.querySelector('.team-name');
+                const originalTextColor = teamNameP.style.color || '#333';
+
+                function getContrastYIQ(hexcolor){
+                    hexcolor = hexcolor.replace("#", "");
+                    var r = parseInt(hexcolor.substr(0,2),16);
+                    var g = parseInt(hexcolor.substr(2,2),16);
+                    var b = parseInt(hexcolor.substr(4,2),16);
+                    var yiq = ((r*299)+(g*587)+(b*114))/1000;
+                    return (yiq >= 128) ? '#333' : 'white';
+                }
+
+                const hoverTextColor = getContrastYIQ(primaryColor);
+
+                box.addEventListener('mouseenter', function () {
+                    if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
+                        this.style.backgroundColor = primaryColor;
+                        teamNameP.style.color = hoverTextColor;
+                    }
+                });
+
+                box.addEventListener('mouseleave', function () {
+                    if (!this.classList.contains('selected-team1') && !this.classList.contains('selected-team2')) {
+                        this.style.backgroundColor = originalBackgroundColor;
+                        teamNameP.style.color = originalTextColor;
+                    }
+                });
+
+                box.addEventListener('click', function () {
+                    const teamCode = this.dataset.teamCode;
+                    const clickedBoxPrimaryColor = this.dataset.primaryColor;
+                    const clickedBoxTextColor = getContrastYIQ(clickedBoxPrimaryColor);
+
+                    if (team1 === teamCode) {
+                        team1 = null;
+                        selectedTeam1Input.value = '';
+                        this.classList.remove('selected-team1');
+                        this.style.backgroundColor = originalBackgroundColor;
+                        teamNameP.style.color = originalTextColor;
+                    } else if (team2 === teamCode) {
+                        team2 = null;
+                        selectedTeam2Input.value = '';
+                        this.classList.remove('selected-team2');
+                        this.style.backgroundColor = originalBackgroundColor;
+                        teamNameP.style.color = originalTextColor;
+                    } else if (!team1) {
+                        team1 = teamCode;
+                        selectedTeam1Input.value = team1;
+                        this.classList.add('selected-team1');
+                        this.style.backgroundColor = clickedBoxPrimaryColor;
+                        teamNameP.style.color = clickedBoxTextColor;
+                    } else if (!team2) {
+                        team2 = teamCode;
+                        selectedTeam2Input.value = team2;
+                        this.classList.add('selected-team2');
+                        this.style.backgroundColor = clickedBoxPrimaryColor;
+                        teamNameP.style.color = clickedBoxTextColor;
+                    } else {
+                        const oldTeam1Box = document.querySelector('.team-box.selected-team1');
+                        if (oldTeam1Box) {
+                            oldTeam1Box.classList.remove('selected-team1');
+                            oldTeam1Box.style.backgroundColor = originalBackgroundColor;
+                            oldTeam1Box.querySelector('.team-name').style.color = originalTextColor;
+                        }
+                        team1 = teamCode;
+                        selectedTeam1Input.value = team1;
+                        this.classList.add('selected-team1');
+                        this.style.backgroundColor = clickedBoxPrimaryColor;
+                        teamNameP.style.color = clickedBoxTextColor;
+                    }
+                    validateSelections();
+                });
+            });
+
+            function validateSelections() {
+                if (team1 && team2 && team1 !== team2) {
+                    simulationOptionsDiv.style.display = 'block'; // Show simulation buttons
+                } else {
+                    simulationOptionsDiv.style.display = 'none'; // Hide simulation buttons
+                }
+            }
+
+            validateSelections(); // Initial check
+
+            document.getElementById('scorecardForm').addEventListener('submit', function(event) {
+                // Basic validation, more specific validation can be added per button if needed
+                if (!selectedTeam1Input.value || !selectedTeam2Input.value) {
+                    event.preventDefault();
+                    alert('Please select two teams to generate the scorecard.');
+                } else if (selectedTeam1Input.value === selectedTeam2Input.value) {
+                    event.preventDefault();
+                    alert('Please select two different teams.');
+                }
+                // No need to check for simulation_type here as it's part of the clicked button
+            });
+        });
     </script>
 </body>
 </html>
