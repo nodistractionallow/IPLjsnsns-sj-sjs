@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ball-by-Ball Simulation</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #1e1e1e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; box-sizing: border-box; }
+        .container { width: 100%; max-width: 960px; background: #2c2c2c; padding: 20px; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+
+        h1, h2, h3 { text-align: center; color: #ffcc00; }
+        h1 { font-size: 2.5em; margin-bottom: 10px; }
+        h2 { font-size: 1.8em; margin-bottom: 15px; border-bottom: 2px solid #ffcc00; padding-bottom: 10px;}
+        h3 { font-size: 1.4em; margin-bottom: 10px; color: #eee;}
+
+        .section { margin-bottom: 20px; padding: 15px; background-color: #3a3a3a; border-radius: 8px; }
+        .section p { margin: 8px 0; font-size: 1.1em; }
+        .section strong { color: #ffcc00; }
+
+        #led-display { text-align: center; padding: 20px; background-color: #111; border-radius: 8px; margin-bottom: 20px; font-size: 2em; display: flex; justify-content: space-around; align-items: center; }
+        #led-display span { padding: 10px 20px; border-radius: 5px; background-color: #000; min-width: 100px; display: inline-block; }
+        .led-runs-0 { background-color: #757575; color: #fff; } /* Grey for 0 */
+        .led-runs-123 { background-color: #4CAF50; color: white; } /* Green for 1,2,3 */
+        .led-runs-456 { background-color: #FF9800; color: white; } /* Orange for 4,6 */
+        .led-wicket { background-color: #F44336; color: white; } /* Red for Wicket */
+        .led-extra { background-color: #2196F3; color: white; } /* Blue for Extras */
+
+        .player-highlight { font-weight: bold; color: #ffeb3b; } /* Yellow highlight for on-strike */
+
+        .controls { display: flex; justify-content: center; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .controls button, .controls select { padding: 10px 18px; font-size: 1em; cursor: pointer; background-color: #ffcc00; color: #1e1e1e; border: none; border-radius: 5px; transition: background-color 0.3s; }
+        .controls button:hover { background-color: #e6b800; }
+        .controls button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+        .controls select { background-color: #4a4a4a; color: #fff; border: 1px solid #ffcc00; }
+
+        #last-ball-commentary { font-size: 1.2em; text-align: center; min-height: 30px; padding: 10px; background-color: #4a4a4a; border-radius: 5px;}
+        #full-innings-log { max-height: 200px; overflow-y: auto; padding: 10px; background-color: #222; border-radius: 5px; font-size: 0.9em; }
+        .log-entry { border-bottom: 1px solid #444; padding: 6px 0; }
+        .log-entry:last-child { border-bottom: none; }
+
+        .win-message { text-align: center; font-size: 1.8em; color: #4CAF50; font-weight: bold; padding: 20px; background-color: #dff0d8; border: 1px solid #4CAF50; border-radius: 5px; color:#3c763d;}
+        .error-message { color: #F44336; text-align: center; }
+        .hidden { display: none; }
+        #loadingIndicator { text-align: center; font-style: italic; margin-top:10px; color: #ffcc00;}
+        a { color: #ffcc00; text-decoration: none; }
+        a:hover { text-decoration: underline;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Live Cricket Simulation</h1>
+        <p style="text-align:center;"><a href="{{ url_for('index') }}">New Match / Back to Team Selection</a></p>
+
+        <div id="tossDisplay" class="section"></div>
+
+        <div id="led-display">
+            Ball: <span id="led-ball-number">0.0</span> |
+            Outcome: <span id="led-ball-outcome">---</span> |
+            Score: <span id="led-current-total">0/0</span>
+        </div>
+
+        <div class="section score-info">
+            <h2>Scoreboard</h2>
+            <p><strong>Batting:</strong> <span id="battingTeamName">N/A</span></p>
+            <p><strong>Score:</strong> <span id="currentScore">0</span>/<span id="currentWickets">0</span> (<span id="currentOvers">0.0</span> Overs)</p>
+            <p><strong>Bowling:</strong> <span id="bowlingTeamName">N/A</span></p>
+            <div id="targetInfo" class="hidden">
+                <p><strong>Target:</strong> <span id="targetScore">0</span></p>
+                <p><strong>Needed:</strong> <span id="runsNeeded">0</span> runs from <span id="ballsRemaining">0</span> balls</p>
+            </div>
+        </div>
+
+        <div class="section players-info">
+            <h3>Players</h3>
+            <p>On Strike: <span id="batsman-onstrike" class="player-highlight">N/A</span></p>
+            <p>Non-Striker: <span id="batsman-nonstrike">N/A</span></p>
+            <p>Current Bowler: <span id="current-bowler">N/A</span></p>
+        </div>
+
+        <div id="winMessageContainer" class="win-message hidden"></div>
+
+        <div class="controls section">
+            <button id="simulateNextBallBtn">Simulate Next Ball</button>
+            <select id="simSpeed">
+                <option value="3000">Slow (3s)</option>
+                <option value="2000">Medium (2s)</option>
+                <option value="1000" selected>Fast (1s)</option>
+                <option value="500">Very Fast (0.5s)</option>
+                 <option value="100">Instant (0.1s)</option>
+            </select>
+            <button id="startAutoPlayBtn">Start Auto-Play</button>
+            <button id="pauseAutoPlayBtn" class="hidden">Pause Auto-Play</button>
+        </div>
+        <div id="loadingIndicator" class="hidden">Simulating...</div>
+
+        <div class="section commentary-box">
+            <h3>Last Ball Commentary</h3>
+            <div id="last-ball-commentary">Waiting for first ball...</div>
+        </div>
+
+        <div class="section full-log-box">
+            <h3>Full Innings Log</h3>
+            <div id="full-innings-log"></div>
+        </div>
+
+    </div>
+
+    <script>
+        const tossDisplayEl = document.getElementById('tossDisplay');
+        const ledBallNumEl = document.getElementById('led-ball-number');
+        const ledOutcomeEl = document.getElementById('led-ball-outcome');
+        const ledScoreEl = document.getElementById('led-current-total');
+
+        const battingTeamNameEl = document.getElementById('battingTeamName');
+        const currentScoreEl = document.getElementById('currentScore');
+        const currentWicketsEl = document.getElementById('currentWickets');
+        const currentOversEl = document.getElementById('currentOvers');
+        const bowlingTeamNameEl = document.getElementById('bowlingTeamName');
+
+        const targetInfoEl = document.getElementById('targetInfo');
+        const targetScoreEl = document.getElementById('targetScore');
+        const runsNeededEl = document.getElementById('runsNeeded');
+        const ballsRemainingEl = document.getElementById('ballsRemaining');
+
+        const onStrikeBatsmanEl = document.getElementById('batsman-onstrike');
+        const nonStrikeBatsmanEl = document.getElementById('batsman-nonstrike');
+        const currentBowlerEl = document.getElementById('current-bowler');
+
+        const winMessageContainerEl = document.getElementById('winMessageContainer');
+        const simulateNextBallBtn = document.getElementById('simulateNextBallBtn');
+        const simSpeedSelect = document.getElementById('simSpeed');
+        const startAutoPlayBtn = document.getElementById('startAutoPlayBtn');
+        const pauseAutoPlayBtn = document.getElementById('pauseAutoPlayBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const lastBallCommentaryEl = document.getElementById('last-ball-commentary');
+        const fullInningsLogEl = document.getElementById('full-innings-log');
+
+        let autoPlayInterval = null;
+        let currentInningsLogNumber = 0;
+
+        function formatOver(legalBalls) {
+            if (legalBalls === 0) return "0.0";
+            const overs = Math.floor(legalBalls / 6);
+            const ballsInOver = legalBalls % 6;
+            return `${overs}.${ballsInOver}`;
+        }
+
+        function updateUI(gameState, ballEvent) {
+            if (!gameState) return;
+
+            tossDisplayEl.textContent = gameState.toss_message;
+            battingTeamNameEl.textContent = gameState.current_batting_team || 'N/A';
+            bowlingTeamNameEl.textContent = gameState.current_bowling_team || 'N/A';
+
+            const currentInningsNum = gameState.current_innings_num;
+            const inningsData = gameState.innings_data[currentInningsNum];
+
+            if (inningsData) {
+                currentScoreEl.textContent = inningsData.score;
+                currentWicketsEl.textContent = inningsData.wickets;
+                currentOversEl.textContent = formatOver(inningsData.legal_balls_bowled);
+
+                ledScoreEl.textContent = `${inningsData.score}/${inningsData.wickets}`;
+                ledBallNumEl.textContent = formatOver(inningsData.legal_balls_bowled);
+
+                if (currentInningsNum === 2 && gameState.target_score > 0) {
+                    targetInfoEl.classList.remove('hidden');
+                    targetScoreEl.textContent = gameState.target_score;
+                    const needed = Math.max(0, gameState.target_score - inningsData.score);
+                    const remainingBalls = Math.max(0, 120 - inningsData.legal_balls_bowled);
+                    runsNeededEl.textContent = needed;
+                    ballsRemainingEl.textContent = remainingBalls;
+                } else {
+                    targetInfoEl.classList.add('hidden');
+                }
+            }
+
+            onStrikeBatsmanEl.textContent = gameState.on_strike || 'N/A';
+            nonStrikeBatsmanEl.textContent = gameState.non_strike || 'N/A';
+            currentBowlerEl.textContent = gameState.current_bowler || 'N/A';
+
+            if (ballEvent) {
+                let outcomeClass = 'led-runs-0';
+                let outcomeText = ballEvent.runs;
+                if (ballEvent.is_wicket) { outcomeClass = 'led-wicket'; outcomeText = "WICKET!"; }
+                else if (ballEvent.extra_type) { outcomeClass = 'led-extra'; outcomeText = ballEvent.extra_type.toUpperCase(); }
+                else if (ballEvent.runs >= 4) { outcomeClass = 'led-runs-456'; }
+                else if (ballEvent.runs > 0) { outcomeClass = 'led-runs-123'; }
+
+                ledOutcomeEl.textContent = outcomeText;
+                ledOutcomeEl.className = outcomeClass; // Reset and apply new class
+
+                lastBallCommentaryEl.textContent = ballEvent.commentary;
+
+                if(currentInningsLogNumber !== currentInningsNum){
+                    fullInningsLogEl.innerHTML = ''; // Clear log for new innings
+                    currentInningsLogNumber = currentInningsNum;
+                }
+                const logEntry = document.createElement('div');
+                logEntry.classList.add('log-entry');
+                logEntry.innerHTML = `<strong>${ballEvent.over_str} (${ballEvent.bowler} to ${ballEvent.batsman})</strong>: ${ballEvent.total_runs_ball} run(s). ${ballEvent.commentary}`;
+                fullInningsLogEl.appendChild(logEntry);
+                fullInningsLogEl.scrollTop = fullInningsLogEl.scrollHeight;
+            } else {
+                 ledOutcomeEl.textContent = "---";
+                 ledOutcomeEl.className = "";
+            }
+
+
+            if (gameState.game_over) {
+                winMessageContainerEl.textContent = gameState.win_message;
+                winMessageContainerEl.classList.remove('hidden');
+                simulateNextBallBtn.disabled = true;
+                startAutoPlayBtn.disabled = true;
+                pauseAutoPlayBtn.classList.add('hidden');
+                if (autoPlayInterval) clearInterval(autoPlayInterval);
+            } else {
+                simulateNextBallBtn.disabled = false;
+                startAutoPlayBtn.disabled = false;
+                winMessageContainerEl.classList.add('hidden');
+            }
+        }
+
+        const initialGameState = {{ game_state | tojson }};
+        currentInningsLogNumber = initialGameState.current_innings_num; // Initialize for log
+        updateUI(initialGameState, null);
+
+        async function handleSimulateNextBall() {
+            simulateNextBallBtn.disabled = true;
+            if(!autoPlayInterval) loadingIndicator.classList.remove('hidden'); // Show loader only if not autoplaying fast
+            lastBallCommentaryEl.textContent = "Simulating...";
+
+            try {
+                const response = await fetch("{{ url_for('simulate_next_ball') }}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                updateUI(data.summary, data.ball_event);
+
+                // If game is over during autoplay, stop it
+                if (data.summary.game_over && autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    pauseAutoPlayBtn.classList.add('hidden');
+                    startAutoPlayBtn.classList.remove('hidden');
+                    startAutoPlayBtn.disabled = true; // Game over, so disable start
+                    simSpeedSelect.disabled = false;
+                }
+
+            } catch (error) {
+                console.error('Error simulating next ball:', error);
+                lastBallCommentaryEl.textContent = `Error: ${error.message}`;
+                if (autoPlayInterval) { // Stop autoplay on error
+                    clearInterval(autoPlayInterval);
+                    pauseAutoPlayBtn.classList.add('hidden');
+                    startAutoPlayBtn.classList.remove('hidden');
+                    simSpeedSelect.disabled = false;
+                }
+            } finally {
+                if (!initialGameState.game_over && !autoPlayInterval) { // Re-enable button only if game not over and not in autoplay
+                     simulateNextBallBtn.disabled = false;
+                }
+                 if(!autoPlayInterval) loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        simulateNextBallBtn.addEventListener('click', handleSimulateNextBall);
+
+        startAutoPlayBtn.addEventListener('click', () => {
+            startAutoPlayBtn.classList.add('hidden');
+            pauseAutoPlayBtn.classList.remove('hidden');
+            simulateNextBallBtn.disabled = true;
+            simSpeedSelect.disabled = true;
+
+            const speed = parseInt(simSpeedSelect.value, 10);
+            handleSimulateNextBall(); // Simulate first ball immediately
+            autoPlayInterval = setInterval(handleSimulateNextBall, speed);
+        });
+
+        pauseAutoPlayBtn.addEventListener('click', () => {
+            clearInterval(autoPlayInterval);
+            autoPlayInterval = null;
+            pauseAutoPlayBtn.classList.add('hidden');
+            startAutoPlayBtn.classList.remove('hidden');
+            if (!winMessageContainerEl.classList.contains('hidden')) { // Game is over
+                 simulateNextBallBtn.disabled = true;
+                 startAutoPlayBtn.disabled = true;
+            } else {
+                 simulateNextBallBtn.disabled = false;
+                 startAutoPlayBtn.disabled = false;
+            }
+            simSpeedSelect.disabled = false;
+        });
+
+    </script>
+</body>
+</html>
