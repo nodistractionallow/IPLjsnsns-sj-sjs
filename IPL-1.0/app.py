@@ -186,7 +186,13 @@ def replay_match_view():
         session.pop('replay_match_id', None)
         return redirect(url_for('index', error_message="Error reading match data."))
 
-    return render_template('replay_ball_by_ball.html', full_match_data=full_match_data)
+    team1_s_name = full_match_data.get('team1_data', {}).get('name', full_match_data.get('team1_code', 'Team 1'))
+    team2_s_name = full_match_data.get('team2_data', {}).get('name', full_match_data.get('team2_code', 'Team 2'))
+
+    return render_template('replay_ball_by_ball.html',
+                           full_match_data=full_match_data,
+                           team1_short_name=team1_s_name,
+                           team2_short_name=team2_s_name)
 
 # Routes for MatchSimulator based interactive simulation (currently disconnected from main UI flow)
 # @app.route('/ball_by_ball_game_view')
