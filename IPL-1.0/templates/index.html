@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cricket Scorecard Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f0f4f8;
+            padding-top: 20px; /* Added padding to avoid content touching top edge */
+            padding-bottom: 20px; /* Added padding to avoid content touching bottom edge */
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #ffffff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-radius: 8px; /* Added border-radius for container */
+        }
+        .team-selection {
+            margin-bottom: 20px;
+            padding: 20px; /* Increased padding */
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #e9ecef;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        h3 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 15px; /* Added margin for spacing */
+        }
+        h4 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px; /* Added margin for spacing */
+            margin-bottom: 10px; /* Added margin for spacing */
+        }
+        h5 { /* For Bowling titles */
+            color: #333;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+        label {
+            margin-right: 10px;
+        }
+        select {
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            min-width: 100px; /* Ensure select boxes have a decent width */
+        }
+        button {
+            padding: 10px 15px; /* Adjusted padding */
+            margin-right: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3; /* Darker shade on hover */
+        }
+        .scorecard-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fff; /* Kept white as container has shadow */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            border-radius: 5px; /* Rounded corners for table */
+            overflow: hidden; /* Important for border-radius on table */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow for tables */
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px; /* Increased padding */
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            border-bottom: 2px solid #0056b3; /* Darker blue for header bottom border */
+        }
+        tbody tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+        tbody tr:hover {
+            background-color: #f1f1f1; /* Hover effect for table rows */
+        }
+        .hidden {
+            display: none;
+        }
+        .match-summary { /* General style for summary boxes */
+            background-color: #e7f3fe;
+            padding: 15px; /* Increased padding */
+            border-radius: 5px;
+            margin-top: 15px; /* Added margin */
+            border: 1px solid #b8daff; /* Added border */
+        }
+        .match-summary h4 { /* Specific for toss heading */
+            text-align: left; /* Align toss heading to left */
+            margin-top: 0;
+        }
+        .result-highlight { /* New class for the result message */
+            margin-top: 20px;
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            padding: 15px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .result-highlight p strong {
+            font-size: 1.1em;
+            font-weight: bold; /* Ensure it's bold */
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: #ddd;
+            margin-top: 25px;
+            margin-bottom: 25px;
+        }
+        p strong { /* For Total: lines */
+            font-size: 1.05em;
+        }
+        .commentary-section {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .commentary-header {
+            background-color: #6c757d; /* A neutral color */
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px 5px 0 0;
+        }
+        .commentary-header:hover {
+            background-color: #5a6268;
+        }
+        .commentary-content {
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            max-height: 300px; /* Or adjust as needed */
+            overflow-y: auto; /* Scroll for long commentary */
+            display: none; /* Hidden by default */
+        }
+        .commentary-content p {
+            margin: 5px 0;
+            font-size: 0.9em;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 5px;
+        }
+        .commentary-content p:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Cricket Scorecard Generator</h2>
+
+        <div class="team-selection">
+            <h3>Select Teams</h3>
+            <form action="/generate_scorecard" method="post">
+                <label for="team1">Team 1:</label>
+                <select name="team1" id="team1">
+                    {% for team_code, team_players in teams.items() %}
+                        <option value="{{ team_code }}">{{ team_code.upper() }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="team2">Team 2:</label>
+                <select name="team2" id="team2">
+                    {% for team_code, team_players in teams.items() %}
+                        <option value="{{ team_code }}">{{ team_code.upper() }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit">Generate Scorecard</button>
+            </form>
+        </div>
+
+        {% if scorecard_data %}
+        <div class="scorecard-section">
+            <h3>Match Results</h3>
+
+            {% if scorecard_data.tossMsg %}
+            <div class="match-summary">
+                <h4>Toss</h4>
+                <p>{{ scorecard_data.tossMsg }}</p>
+            </div>
+            {% endif %}
+
+            {% if scorecard_data.innings1BatTeam %}
+            <h4>Innings 1: {{ scorecard_data.innings1BatTeam.upper() }}</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Runs</th>
+                        <th>Balls</th>
+                        <th>SR</th>
+                        <th>How Out</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player, stats in scorecard_data.innings1Battracker.items() %}
+                    <tr>
+                        <td>{{ player }}</td>
+                        <td>{{ stats.runs }}</td>
+                        <td>{{ stats.balls }}</td>
+                        <td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td>
+                        <td>{{ stats.how_out }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><strong>Total: {{ scorecard_data.innings1Runs }}/{{ scorecard_data.innings1Wickets }} ({{ scorecard_data.innings1Balls // 6 }}.{{ scorecard_data.innings1Balls % 6 }} Overs)</strong></p>
+
+            <h5>Bowling: {{ scorecard_data.innings2BatTeam.upper() }}</h5>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Overs</th>
+                        <th>Runs</th>
+                        <th>Wickets</th>
+                        <th>Economy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player, stats in scorecard_data.innings1Bowltracker.items() %}
+                    <tr>
+                        <td>{{ player }}</td>
+                        <td>{{ stats.balls // 6 }}.{{ stats.balls % 6 }}</td>
+                        <td>{{ stats.runs }}</td>
+                        <td>{{ stats.wickets }}</td>
+                        <td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            {% if scorecard_data.innings1Log %}
+            <div class="commentary-section">
+                <div class="commentary-header" onclick="toggleCommentary('commentary1')">
+                    Innings 1: Over-by-Over Log &#9662; <!-- Down arrow -->
+                </div>
+                <div class="commentary-content" id="commentary1">
+                    {% for log_entry in scorecard_data.innings1Log %}
+                        <p>{{ log_entry.event }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <hr>
+
+            {% if scorecard_data.innings2BatTeam %}
+            <h4>Innings 2: {{ scorecard_data.innings2BatTeam.upper() }}</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Runs</th>
+                        <th>Balls</th>
+                        <th>SR</th>
+                        <th>How Out</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player, stats in scorecard_data.innings2Battracker.items() %}
+                    <tr>
+                        <td>{{ player }}</td>
+                        <td>{{ stats.runs }}</td>
+                        <td>{{ stats.balls }}</td>
+                        <td>{{ '%.2f'|format((stats.runs / stats.balls * 100) if stats.balls > 0 else 0) }}</td>
+                        <td>{{ stats.how_out }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <p><strong>Total: {{ scorecard_data.innings2Runs }}/{{ scorecard_data.innings2Wickets }} ({{ scorecard_data.innings2Balls // 6 }}.{{ scorecard_data.innings2Balls % 6 }} Overs)</strong></p>
+
+            <h5>Bowling: {{ scorecard_data.innings1BatTeam.upper() }}</h5>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Overs</th>
+                        <th>Runs</th>
+                        <th>Wickets</th>
+                        <th>Economy</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player, stats in scorecard_data.innings2Bowltracker.items() %}
+                    <tr>
+                        <td>{{ player }}</td>
+                        <td>{{ stats.balls // 6 }}.{{ stats.balls % 6 }}</td>
+                        <td>{{ stats.runs }}</td>
+                        <td>{{ stats.wickets }}</td>
+                        <td>{{ '%.2f'|format((stats.runs / (stats.balls / 6)) if stats.balls > 0 else 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+
+            {% if scorecard_data.innings2Log %}
+            <div class="commentary-section">
+                <div class="commentary-header" onclick="toggleCommentary('commentary2')">
+                    Innings 2: Over-by-Over Log &#9662; <!-- Down arrow -->
+                </div>
+                <div class="commentary-content" id="commentary2">
+                    {% for log_entry in scorecard_data.innings2Log %}
+                        <p>{{ log_entry.event }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            {% if scorecard_data.winMsg %}
+            <div class="match-summary result-highlight">
+                <h4>Result</h4>
+                <p><strong>{{ scorecard_data.winMsg }}</strong></p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <script>
+        function toggleCommentary(commentaryId) {
+            var content = document.getElementById(commentaryId);
+            var header = content.previousElementSibling; // Get the commentary-header
+            if (content.style.display === "none" || content.style.display === "") {
+                content.style.display = "block";
+                header.innerHTML = header.innerHTML.replace("▼", "▲"); // Change to up arrow (using actual characters for safety)
+            } else {
+                content.style.display = "none";
+                header.innerHTML = header.innerHTML.replace("▲", "▼"); // Change to down arrow
+            }
+        }
+    </script>
+</body>
+</html>
