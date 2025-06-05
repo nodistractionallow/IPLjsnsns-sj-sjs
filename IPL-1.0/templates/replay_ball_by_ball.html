@@ -10,7 +10,8 @@
             margin: 0;
             background-color: #1e1e1e;
             color: #fff;
-            padding-top: 80px; /* Adjusted for fixed header */
+            padding-top: 70px; /* For fixed header */
+            padding-bottom: 75px; /* For fixed bottom control bar */
             box-sizing: border-box;
         }
         .match-header {
@@ -49,10 +50,6 @@
         .new-match-button:hover {
             background-color: #e0b804;
         }
-        hr.header-divider {
-            display: none;
-        }
-
         .container {
             width: 100%;
             max-width: 960px;
@@ -60,9 +57,8 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            margin: 20px auto;
+            margin: 0 auto 20px auto; /* Adjusted margin for body padding */
         }
-
         h2, h3 { text-align: center; color: #ffcc00; }
         h2 { font-size: 1.6em; margin-bottom: 15px; border-bottom: 1px solid #ffcc00; padding-bottom: 10px;}
         h3 { font-size: 1.2em; margin-bottom: 10px; color: #eee;}
@@ -72,69 +68,88 @@
 
         #led-display { text-align: center; padding: 15px; background-color: #111; border-radius: 8px; margin-bottom: 15px; font-size: 1.5em; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; }
         #led-display span { padding: 8px 15px; border-radius: 5px; min-width: 80px; display: inline-block; margin: 5px; text-align:center; }
-
-        /* LED Outcome Specific Styles */
-        #led-ball-outcome { /* Base style for the outcome span itself */
-            font-weight: bold;
-        }
-        .led-runs-0 { background-color: #2ecc71; color: white; } /* Green */
-        .led-runs-123 { background-color: #ecf0f1; color: #2c3e50; } /* Light grey/white, dark text */
-        .led-runs-456 { background-color: #f1c40f; color: #333; } /* Yellow, dark text */
-        .led-wicket { background-color: #e74c3c; color: white; } /* Red */
-        .led-extra { background-color: #3498db; color: white; } /* Blue (for Wide/NoBall) */
-        .led-default { background-color: #bdc3c7; color: #333; } /* Grey for default/unknown */
-
+        #led-ball-outcome { font-weight: bold; }
+        .led-runs-0 { background-color: #2ecc71; color: white; }
+        .led-runs-123 { background-color: #ecf0f1; color: #2c3e50; }
+        .led-runs-456 { background-color: #f1c40f; color: #333; }
+        .led-wicket { background-color: #e74c3c; color: white; }
+        .led-extra { background-color: #3498db; color: white; }
+        .led-default { background-color: #bdc3c7; color: #333; }
 
         .player-highlight { font-weight: bold; color: #ffeb3b; }
-
-        .controls { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; margin-top:15px; }
-        .controls button, .controls select { padding: 8px 15px; font-size: 0.9em; cursor: pointer; background-color: #ffcc00; color: #1e1e1e; border: none; border-radius: 5px; transition: background-color 0.3s; }
-        .controls button:hover { background-color: #e6b800; }
-        .controls button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
-        .controls select { background-color: #4a4a4a; color: #fff; border: 1px solid #ffcc00; }
 
         #last-ball-commentary { font-size: 1.1em; text-align: center; min-height: 25px; padding: 8px; background-color: #4a4a4a; border-radius: 5px;}
         #full-innings-log { max-height: 150px; overflow-y: auto; padding: 8px; background-color: #222; border-radius: 5px; font-size: 0.85em; }
         .log-entry { border-bottom: 1px solid #444; padding: 5px 0; }
         .log-entry:last-child { border-bottom: none; }
-
         .win-message { text-align: center; font-size: 1.5em; color: #4CAF50; font-weight: bold; padding: 15px; background-color: #dff0d8; border: 1px solid #4CAF50; border-radius: 5px; color:#3c763d;}
         .hidden { display: none; }
         .team-logo-pbs { width: 24px; height: 24px; margin-right: 8px; vertical-align: middle; border-radius: 50%; background-color: #fff; padding:1px; }
         .team-display { display: flex; align-items: center; margin-bottom: 5px;}
         .team-display .name {font-size: 1.1em; font-weight:bold;}
         .team-display .score-details {font-size: 1em; margin-left:8px;}
+
+        /* Bottom Control Bar Styles START */
+        .bottom-control-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background-color: #1e272e; color: white; padding: 10px 0;
+            display: flex; justify-content: space-evenly; align-items: center;
+            z-index: 1010; box-shadow: 0 -2px 8px rgba(0,0,0,0.3); box-sizing: border-box;
+        }
+        .control-bar-button {
+            background-color: #f1c40f; color: #1e272e; border: none;
+            padding: 10px 18px; border-radius: 20px; cursor: pointer;
+            font-weight: bold; font-size: 0.9em; transition: background-color 0.2s ease; margin: 0 5px;
+        }
+        .control-bar-button:hover { background-color: #e0b804; }
+        .control-bar-button:disabled { background-color: #576574; color: #a5b1c2; cursor: not-allowed; }
+        .control-bar-select {
+            padding: 8px 10px; border-radius: 5px; border: 1px solid #f1c40f;
+            background-color: #2c3e50; color: white; font-size: 0.9em; margin: 0 5px;
+        }
+        .speed-control-container { display: flex; align-items: center; margin: 0 5px; }
+        .speed-control-container label { margin-right: 8px; font-weight: normal; font-size: 0.9em; }
+        /* Bottom Control Bar Styles END */
+
+        /* Final Scorecard Table Styles START */
+        .scorecard-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px;
+            font-size: 0.9em; color: #ecf0f1;
+        }
+        .scorecard-table th, .scorecard-table td {
+            border: 1px solid #4a6572; padding: 8px 10px; text-align: left;
+        }
+        .scorecard-table th {
+            background-color: #34495e; color: #f1c40f; font-weight: bold;
+        }
+        .scorecard-table tbody tr:nth-child(odd) { background-color: #3b5363; }
+        .scorecard-table tbody tr:hover { background-color: #4a6572; }
+        .result-highlight-replay { /* Style for result in final scorecard */
+             margin-top:20px; padding:15px; text-align:center; background-color: #27ae60;
+             color:white; border-radius: 5px;
+        }
+        .result-highlight-replay h4 {color: white;}
+         /* Final Scorecard Table Styles END */
     </style>
 </head>
 <body>
     <header class="match-header">
-        <div class="header-title">
-            <h1>{{ team1_short_name }} vs {{ team2_short_name }}</h1>
-        </div>
-        <div class="header-actions">
-            <form action="{{ url_for('index') }}" method="get" style="margin: 0;">
-                <button type="submit" class="new-match-button">New Match</button>
-            </form>
-        </div>
+        <div class="header-title"><h1>{{ team1_short_name }} vs {{ team2_short_name }}</h1></div>
+        <div class="header-actions"><form action="{{ url_for('index') }}" method="get" style="margin: 0;"><button type="submit" class="new-match-button">New Match</button></form></div>
     </header>
 
     <div class="container">
         <div id="tossDisplay" class="section"></div>
-
         <div id="led-display">
             <span>Ball: <span id="led-ball-number">0.0</span></span>
             <span>Outcome: <span id="led-ball-outcome" class="led-default">---</span></span>
             <span>Score: <span id="led-current-total">0/0</span></span>
         </div>
-
         <div class="section score-info">
             <h2>Scoreboard</h2>
             <div class="team-display batting-team-display">
                 <img src="" alt="Batting Team Logo" class="team-logo-pbs" id="battingTeamLogo">
-                <div>
-                    <span class="name" id="battingTeamName">N/A</span>
-                    <span class="score-details">Score: <span id="currentScore">0</span>/<span id="currentWickets">0</span> (<span id="currentOvers">0.0</span> Overs)</span>
-                </div>
+                <div><span class="name" id="battingTeamName">N/A</span><span class="score-details">Score: <span id="currentScore">0</span>/<span id="currentWickets">0</span> (<span id="currentOvers">0.0</span> Overs)</span></div>
             </div>
             <div class="team-display bowling-team-display" style="margin-top:8px;">
                 <img src="" alt="Bowling Team Logo" class="team-logo-pbs" id="bowlingTeamLogo">
@@ -145,81 +160,75 @@
                 <p><strong>Needed:</strong> <span id="runsNeeded">0</span> runs from <span id="ballsRemaining">0</span> balls</p>
             </div>
         </div>
-
         <div class="section players-info">
             <h3>Players</h3>
             <p>On Strike: <span id="batsman-onstrike" class="player-highlight">N/A</span></p>
             <p>Non-Striker: <span id="batsman-nonstrike">N/A</span></p>
             <p>Current Bowler: <span id="current-bowler">N/A</span></p>
         </div>
-
         <div id="winMessageContainer" class="win-message hidden"></div>
 
-        <div class="controls section">
-            <button id="nextBallBtn">Next Ball</button>
-            <select id="simSpeed">
+        <div class="section commentary-box"><h3>Commentary</h3><div id="last-ball-commentary">Match Replay Ready. Click Next Ball or Auto-Play.</div></div>
+        <div class="section full-log-box"><h3>Full Log (Current Innings)</h3><div id="full-innings-log"></div></div>
+
+        <div id="finalScorecardDisplay" style="display: none; margin-top: 25px; padding: 15px; background-color: #2c3e50; border-radius: 8px;">
+            <h2 style="text-align: center; color: #f1c40f; margin-bottom: 20px;">Full Match Scorecard</h2>
+            {# Content will be generated by JavaScript #}
+        </div>
+    </div>
+
+    <div class="bottom-control-bar">
+        <button id="nextBallBtn" class="control-bar-button">Next Ball</button>
+        <div class="speed-control-container">
+            <label for="simSpeed">Speed:</label>
+            <select id="simSpeed" class="control-bar-select">
                 <option value="2000">Slow (2s)</option>
                 <option value="1000" selected>Medium (1s)</option>
                 <option value="500">Fast (0.5s)</option>
-                <option value="100">Very Fast (0.1s)</option>
+                <option value="200">Rapid (0.2s)</option>
             </select>
-            <button id="startAutoPlayBtn">Auto-Play</button>
-            <button id="pauseAutoPlayBtn" class="hidden">Pause</button>
         </div>
-
-        <div class="section commentary-box">
-            <h3>Commentary</h3>
-            <div id="last-ball-commentary">Match Replay Ready. Click Next Ball or Auto-Play.</div>
-        </div>
-
-        <div class="section full-log-box">
-            <h3>Full Log (Current Innings)</h3>
-            <div id="full-innings-log"></div>
-        </div>
+        <button id="startAutoPlayBtn" class="control-bar-button">Auto-Play</button>
+        <button id="pauseAutoPlayBtn" class="control-bar-button" style="display:none;">Pause</button>
     </div>
 
     <script>
         const fullMatchData = {{ full_match_data | tojson }};
 
+        // DOM Elements (assuming they are all correctly defined above)
         const tossDisplayEl = document.getElementById('tossDisplay');
         const ledBallNumEl = document.getElementById('led-ball-number');
         const ledOutcomeEl = document.getElementById('led-ball-outcome');
         const ledScoreEl = document.getElementById('led-current-total');
-
         const battingTeamNameEl = document.getElementById('battingTeamName');
         const battingTeamLogoEl = document.getElementById('battingTeamLogo');
         const currentScoreEl = document.getElementById('currentScore');
         const currentWicketsEl = document.getElementById('currentWickets');
         const currentOversEl = document.getElementById('currentOvers');
-
         const bowlingTeamNameEl = document.getElementById('bowlingTeamName');
         const bowlingTeamLogoEl = document.getElementById('bowlingTeamLogo');
-
         const targetInfoEl = document.getElementById('targetInfo');
         const targetScoreEl = document.getElementById('targetScore');
         const runsNeededEl = document.getElementById('runsNeeded');
         const ballsRemainingEl = document.getElementById('ballsRemaining');
-
         const onStrikeBatsmanEl = document.getElementById('batsman-onstrike');
         const nonStrikeBatsmanEl = document.getElementById('batsman-nonstrike');
         const currentBowlerEl = document.getElementById('current-bowler');
-
         const winMessageContainerEl = document.getElementById('winMessageContainer');
         const nextBallBtn = document.getElementById('nextBallBtn');
         const simSpeedSelect = document.getElementById('simSpeed');
         const startAutoPlayBtn = document.getElementById('startAutoPlayBtn');
         const pauseAutoPlayBtn = document.getElementById('pauseAutoPlayBtn');
-
         const lastBallCommentaryEl = document.getElementById('last-ball-commentary');
         const fullInningsLogEl = document.getElementById('full-innings-log');
+        const finalScorecardDiv = document.getElementById('finalScorecardDisplay');
+
 
         let innings1Log = fullMatchData.innings1_log || [];
         let innings2Log = fullMatchData.innings2_log || [];
         let ballEvents = [];
-
         let currentInningsNumber = 1;
         let currentBallOverallIndex = -1;
-
         let runningScoreInInnings = 0;
         let runningWicketsInInnings = 0;
         let runningLegalBallsInInnings = 0;
@@ -234,143 +243,148 @@
         }
 
         function parseEventStringForLed(eventString) {
-            let outcomeText = "...";
-            let outcomeClass = "led-default";
-            const normalizedEvent = eventString.toUpperCase();
-
-            // Extract action part: The word after "BatsmanInitial " and before " Score:"
-            let actionPart = "";
-            const toMarker = " TO ";
-            const scoreMarker = " SCORE:";
-
-            let toMarkerIndex = normalizedEvent.indexOf(toMarker);
+            let outcomeText = "..."; let outcomeClass = "led-default";
+            const normalizedEvent = eventString.toUpperCase(); let actionPart = "";
+            const scoreMarker = " SCORE:"; const toMarker = " TO ";
+            const toMarkerIndex = normalizedEvent.indexOf(toMarker);
             if (toMarkerIndex !== -1) {
-                let relevantPart = normalizedEvent.substring(toMarkerIndex + toMarker.length);
-                // Find batsman initial (first word after "TO ")
-                let firstSpaceAfterBatsman = relevantPart.indexOf(" ");
-                if (firstSpaceAfterBatsman !== -1) {
-                    let afterBatsman = relevantPart.substring(firstSpaceAfterBatsman + 1).trim();
-                    let scoreIndexInAction = afterBatsman.indexOf(scoreMarker);
-                    if (scoreIndexInAction !== -1) {
-                         actionPart = afterBatsman.substring(0, scoreIndexInAction).trim();
-                    } else { // If score marker not found after batsman, maybe it's just the action
-                         actionPart = afterBatsman;
-                    }
-                    // Further split actionPart if it's multi-word, take the first word for simple outcomes
-                    actionPart = actionPart.split(" ")[0];
+                const fromBatsmanToEnd = normalizedEvent.substring(toMarkerIndex + toMarker.length);
+                const scoreIndex = fromBatsmanToEnd.indexOf(scoreMarker);
+                if (scoreIndex !== -1) {
+                    const batsmanAndOutcome = fromBatsmanToEnd.substring(0, scoreIndex).trim();
+                    const lastSpace = batsmanAndOutcome.lastIndexOf(" ");
+                    actionPart = (lastSpace === -1) ? batsmanAndOutcome : batsmanAndOutcome.substring(lastSpace + 1);
                 }
             }
-
-            // Fallback for WICKET if it's followed by details e.g. "W Caught by..."
-            // The " W " check is crucial for wickets not having a simple run-like actionPart
-            if (normalizedEvent.includes(" W ") && !normalizedEvent.includes(" WIDE")) {
-                 actionPart = "W";
-            }
-
-            if (actionPart === "W") {
-                outcomeText = "WICKET"; outcomeClass = "led-wicket";
-            } else if (actionPart === "WIDE") {
-                outcomeText = "WIDE"; outcomeClass = "led-extra";
-            } else if (actionPart === "NOBALL") { // Assuming NOBALL might be an actionPart
-                outcomeText = "NO BALL"; outcomeClass = "led-extra";
-            } else if (actionPart === "6" || normalizedEvent.includes("SIX!")) {
-                outcomeText = "SIX"; outcomeClass = "led-runs-456";
-            } else if (actionPart === "4") {
-                outcomeText = "FOUR"; outcomeClass = "led-runs-456";
-            } else if (actionPart === "5") {
-                outcomeText = "5 RUNS"; outcomeClass = "led-runs-456";
-            } else if (actionPart === "3") {
-                outcomeText = "3 RUNS"; outcomeClass = "led-runs-123";
-            } else if (actionPart === "2") {
-                outcomeText = "2 RUNS"; outcomeClass = "led-runs-123";
-            } else if (actionPart === "1") {
-                outcomeText = "1 RUN"; outcomeClass = "led-runs-123";
-            } else if (actionPart === "0" || normalizedEvent.includes("NO RUN")) {
-                outcomeText = "NO RUN"; outcomeClass = "led-runs-0";
-            }
+            if (normalizedEvent.includes(" WICKET") || (actionPart === "W" && !normalizedEvent.includes("WIDE"))) { outcomeText = "WICKET"; outcomeClass = "led-wicket"; }
+            else if (normalizedEvent.includes(" WIDE") || actionPart === "WIDE") { outcomeText = "WIDE"; outcomeClass = "led-extra"; }
+            else if (normalizedEvent.includes("NO BALL") || normalizedEvent.includes("NOBALL") || actionPart === "NOBALL") { outcomeText = "NO BALL"; outcomeClass = "led-extra"; }
+            else if (actionPart === "6" || normalizedEvent.includes("SIX!")) { outcomeText = "SIX"; outcomeClass = "led-runs-456"; }
+            else if (actionPart === "4") { outcomeText = "FOUR"; outcomeClass = "led-runs-456"; }
+            else if (actionPart === "5") { outcomeText = "5 RUNS"; outcomeClass = "led-runs-456"; }
+            else if (actionPart === "3") { outcomeText = "3 RUNS"; outcomeClass = "led-runs-123"; }
+            else if (actionPart === "2") { outcomeText = "2 RUNS"; outcomeClass = "led-runs-123"; }
+            else if (actionPart === "1") { outcomeText = "1 RUN"; outcomeClass = "led-runs-123"; }
+            else if (actionPart === "0" || normalizedEvent.includes("NO RUN")) { outcomeText = "NO RUN"; outcomeClass = "led-runs-0"; }
+            else if (actionPart) { outcomeText = actionPart; }
             return { outcomeText, outcomeClass };
         }
 
         function updateUIDisplay(logEntry) {
-            runningScoreInInnings = logEntry.runs;
-            runningWicketsInInnings = logEntry.wickets;
+            runningScoreInInnings = logEntry.runs; runningWicketsInInnings = logEntry.wickets;
             runningLegalBallsInInnings = logEntry.balls;
-
-            currentScoreEl.textContent = runningScoreInInnings;
-            currentWicketsEl.textContent = runningWicketsInInnings;
-            const oversStr = formatOver(runningLegalBallsInInnings);
-            currentOversEl.textContent = oversStr;
+            currentScoreEl.textContent = runningScoreInInnings; currentWicketsEl.textContent = runningWicketsInInnings;
+            const oversStr = formatOver(runningLegalBallsInInnings); currentOversEl.textContent = oversStr;
             ledScoreEl.textContent = `${runningScoreInInnings}/${runningWicketsInInnings}`;
-
             const parsedLed = parseEventStringForLed(logEntry.event);
             ledOutcomeEl.textContent = parsedLed.outcomeText;
-
-            ledOutcomeEl.classList.remove('led-runs-0', 'led-runs-123', 'led-runs-456', 'led-wicket', 'led-extra', 'led-default');
-            if (parsedLed.outcomeClass) {
-                ledOutcomeEl.classList.add(parsedLed.outcomeClass);
-            } else {
-                ledOutcomeEl.classList.add('led-default');
-            }
-
+            const classesToRemove = ['led-runs-0', 'led-runs-123', 'led-runs-456', 'led-wicket', 'led-extra', 'led-default'];
+            classesToRemove.forEach(cls => ledOutcomeEl.classList.remove(cls));
+            if (parsedLed.outcomeClass) { ledOutcomeEl.classList.add(parsedLed.outcomeClass); }
+            else { ledOutcomeEl.classList.add('led-default'); }
             const ballNumMatch = logEntry.event.match(/^(\d+\.\d+)/);
             ledBallNumEl.textContent = ballNumMatch ? ballNumMatch[1] : oversStr;
-
             onStrikeBatsmanEl.textContent = logEntry.batsman || logEntry.batter1 || 'N/A';
-            if (logEntry.batter1 === (logEntry.batsman || logEntry.batter1) ) {
-                nonStrikeBatsmanEl.textContent = logEntry.batter2 || 'N/A';
-            } else {
-                nonStrikeBatsmanEl.textContent = logEntry.batter1 || 'N/A';
-            }
+            if (logEntry.batter1 === (logEntry.batsman || logEntry.batter1) ) { nonStrikeBatsmanEl.textContent = logEntry.batter2 || 'N/A'; }
+            else { nonStrikeBatsmanEl.textContent = logEntry.batter1 || 'N/A'; }
             currentBowlerEl.textContent = logEntry.bowler || 'N/A';
-
             lastBallCommentaryEl.textContent = logEntry.event;
-            const logEntryDiv = document.createElement('div');
-            logEntryDiv.classList.add('log-entry');
-            logEntryDiv.textContent = logEntry.event;
-            fullInningsLogEl.appendChild(logEntryDiv);
+            const logEntryDiv = document.createElement('div'); logEntryDiv.classList.add('log-entry');
+            logEntryDiv.textContent = logEntry.event; fullInningsLogEl.appendChild(logEntryDiv);
             fullInningsLogEl.scrollTop = fullInningsLogEl.scrollHeight;
-
             if (currentInningsNumber === 2 && targetToChase > 0) {
                 targetInfoEl.classList.remove('hidden');
                 const needed = Math.max(0, targetToChase - runningScoreInInnings);
                 const remainingBalls = Math.max(0, 120 - runningLegalBallsInInnings);
-                runsNeededEl.textContent = needed;
-                ballsRemainingEl.textContent = remainingBalls;
+                runsNeededEl.textContent = needed; ballsRemainingEl.textContent = remainingBalls;
             }
         }
 
         function setupInningsUI(inningsNo) {
             const batTeamCode = inningsNo === 1 ? fullMatchData.innings1_bat_team : fullMatchData.innings2_bat_team;
             const bowlTeamCode = inningsNo === 1 ? fullMatchData.innings2_bat_team : fullMatchData.innings1_bat_team;
-
             let batTeamData = (batTeamCode.toLowerCase() === fullMatchData.team1_code.toLowerCase()) ? fullMatchData.team1_data : fullMatchData.team2_data;
             let bowlTeamData = (bowlTeamCode.toLowerCase() === fullMatchData.team1_code.toLowerCase()) ? fullMatchData.team1_data : fullMatchData.team2_data;
-
             battingTeamNameEl.textContent = batTeamData.fullName || batTeamCode;
-            battingTeamLogoEl.src = batTeamData.logo || '';
-            battingTeamLogoEl.alt = (batTeamData.name || batTeamCode) + ' Logo';
-
+            battingTeamLogoEl.src = batTeamData.logo || ''; battingTeamLogoEl.alt = (batTeamData.name || batTeamCode) + ' Logo';
             bowlingTeamNameEl.textContent = bowlTeamData.fullName || bowlTeamCode;
-            bowlingTeamLogoEl.src = bowlTeamData.logo || '';
-            bowlingTeamLogoEl.alt = (bowlTeamData.name || bowlTeamCode) + ' Logo';
-
-            fullInningsLogEl.innerHTML = `<h3>Innings ${inningsNo}</h3>`;
+            bowlingTeamLogoEl.src = bowlTeamData.logo || ''; bowlingTeamLogoEl.alt = (bowlTeamData.name || bowlTeamCode) + ' Logo';
+            fullInningsLogEl.innerHTML = `<h3 style="color:#f1c40f; text-align:center;">Innings ${inningsNo}</h3>`; // Updated log header
             lastBallCommentaryEl.textContent = `Start of Innings ${inningsNo}.`;
             currentScoreEl.textContent = "0"; currentWicketsEl.textContent = "0"; currentOversEl.textContent = "0.0";
             ledScoreEl.textContent = "0/0"; ledBallNumEl.textContent = "0.0";
             ledOutcomeEl.className = 'led-default'; ledOutcomeEl.textContent = "---";
-
-
             if (inningsNo === 2) {
                 targetToChase = fullMatchData.innings1_runs + 1;
-                targetScoreEl.textContent = targetToChase;
-                runsNeededEl.textContent = targetToChase;
-                ballsRemainingEl.textContent = 120;
-                targetInfoEl.classList.remove('hidden');
-            } else {
-                targetInfoEl.classList.add('hidden');
-            }
+                targetScoreEl.textContent = targetToChase; runsNeededEl.textContent = targetToChase;
+                ballsRemainingEl.textContent = 120; targetInfoEl.classList.remove('hidden');
+            } else { targetInfoEl.classList.add('hidden'); }
         }
+
+        function generateInningsHTML(inningsNum, batTeamCode, bowlTeamCode, inningsRuns, inningsWickets, inningsBalls, battracker, bowltracker, teamsFullData) {
+            let batTeamName = (teamsFullData[batTeamCode.toLowerCase()] ? teamsFullData[batTeamCode.toLowerCase()].fullName : batTeamCode.toUpperCase());
+            let bowlTeamName = (teamsFullData[bowlTeamCode.toLowerCase()] ? teamsFullData[bowlTeamCode.toLowerCase()].fullName : bowlTeamCode.toUpperCase());
+
+            let html = `<h4 style="color: #ecf0f1; margin-top: 20px;">Innings ${inningsNum}: ${batTeamName}</h4>`;
+            html += '<table class="scorecard-table"><thead><tr><th>Player</th><th>How Out</th><th>Runs</th><th>Balls</th><th>SR</th></tr></thead><tbody>';
+
+            if (battracker && typeof battracker === 'object') {
+                for (const playerInitial in battracker) {
+                    const stats = battracker[playerInitial];
+                    const playerName = playerInitial; // Using initial as displayName might not be in tracker
+                    const runs = stats.runs || 0;
+                    const balls = stats.balls || 0;
+                    const sr = balls > 0 ? ((runs / balls) * 100).toFixed(2) : "0.00";
+                    const howOut = stats.how_out || ( (balls > 0 || runs > 0 || stats.order <= (runningWicketsInInnings+2) ) ? "Not out" : "DNB");
+                    html += `<tr><td>${playerName}</td><td>${howOut}</td><td>${runs}</td><td>${balls}</td><td>${sr}</td></tr>`;
+                }
+            }
+            html += '</tbody></table>';
+            const oversStr = formatOver(inningsBalls);
+            html += `<p style="color: #bdc3c7; font-weight: bold;">Total: ${inningsRuns}/${inningsWickets} (${oversStr} Overs)</p>`;
+
+            html += `<h5 style="color: #ecf0f1; margin-top:15px;">Bowling: ${bowlTeamName}</h5>`;
+            html += '<table class="scorecard-table"><thead><tr><th>Player</th><th>Overs</th><th>Runs</th><th>Wickets</th><th>Economy</th></tr></thead><tbody>';
+            if (bowltracker && typeof bowltracker === 'object') {
+                for (const playerInitial in bowltracker) {
+                    const stats = bowltracker[playerInitial];
+                    const playerName = playerInitial;
+                    const ballsBowled = stats.balls_bowled || stats.balls || 0; // stats.balls might be from old format
+                    const overs = formatOver(ballsBowled);
+                    const runsConceded = stats.runs_conceded || stats.runs || 0;
+                    const wicketsTaken = stats.wickets || 0;
+                    const economy = ballsBowled > 0 ? ((runsConceded / (ballsBowled / 6))).toFixed(2) : "0.00";
+                    html += `<tr><td>${playerName}</td><td>${overs}</td><td>${runsConceded}</td><td>${wicketsTaken}</td><td>${economy}</td></tr>`;
+                }
+            }
+            html += '</tbody></table> <hr style="border-color: #444; margin-top: 20px; margin-bottom: 10px;">';
+            return html;
+        }
+
+        function generateFullScorecardHTML(matchData) {
+            let html = `<div style="padding:10px;">`;
+            html += `<h3 style="color: #ecf0f1; text-align:center; margin-bottom:15px;">${matchData.toss_msg}</h3> <hr style="border-color: #444; margin-bottom:20px;">`;
+
+            const teamsDataForFunc = { // Create a map for easy lookup by code
+                [matchData.team1_code.toLowerCase()]: matchData.team1_data,
+                [matchData.team2_code.toLowerCase()]: matchData.team2_data
+            };
+
+            html += generateInningsHTML(1, matchData.innings1_bat_team, (matchData.innings1_bat_team === matchData.team1_code ? matchData.team2_code : matchData.team1_code),
+                                       matchData.innings1_runs, matchData.innings1_wickets, matchData.innings1_balls,
+                                       matchData.innings1_battracker, matchData.innings1_bowltracker, teamsDataForFunc);
+
+            if (matchData.innings2_runs !== undefined) { // Check if second innings data exists
+                 html += generateInningsHTML(2, matchData.innings2_bat_team, (matchData.innings2_bat_team === matchData.team1_code ? matchData.team2_code : matchData.team1_code),
+                                       matchData.innings2_runs, matchData.innings2_wickets, matchData.innings2_balls,
+                                       matchData.innings2_battracker, matchData.innings2_bowltracker, teamsDataForFunc);
+            }
+
+            html += `<div class="result-highlight-replay"><h4>Result</h4><p style="font-size:1.1em; font-weight:bold;">${matchData.win_msg}</p></div>`;
+            html += `</div>`;
+            return html;
+        }
+
 
         function initializeReplay() {
             ballEvents = innings1Log.concat(innings2Log);
@@ -379,6 +393,11 @@
                 disableControls();
                 winMessageContainerEl.textContent = fullMatchData.win_msg || "Match data incomplete.";
                 winMessageContainerEl.classList.remove('hidden');
+                if(fullMatchData.innings1_runs !== undefined) { // If there's at least innings 1 summary, show scorecard
+                    const scorecardHTML = generateFullScorecardHTML(fullMatchData);
+                    finalScorecardDiv.innerHTML = scorecardHTML;
+                    finalScorecardDiv.style.display = 'block';
+                }
                 return;
             }
             tossDisplayEl.textContent = fullMatchData.toss_msg;
@@ -391,12 +410,18 @@
             startAutoPlayBtn.disabled = false;
             pauseAutoPlayBtn.classList.add('hidden');
             simSpeedSelect.disabled = false;
+            finalScorecardDiv.style.display = 'none'; // Hide final scorecard at start
         }
 
         function handleEndOfMatch() {
             winMessageContainerEl.textContent = fullMatchData.win_msg || "Match Concluded.";
             winMessageContainerEl.classList.remove('hidden');
             disableControls();
+
+            const scorecardHTML = generateFullScorecardHTML(fullMatchData);
+            finalScorecardDiv.innerHTML = scorecardHTML;
+            finalScorecardDiv.style.display = 'block';
+            finalScorecardDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function disableControls() {
@@ -408,54 +433,33 @@
         }
 
         function handleNextBall() {
+            // ... (rest of handleNextBall, setupInningsUI, updateUIDisplay, parseEventStringForLed, formatOver as before) ...
             if (winMessageContainerEl.classList.contains('hidden') === false) return;
-
             currentBallOverallIndex++;
-
-            if (currentBallOverallIndex >= ballEvents.length) {
-                handleEndOfMatch();
-                return;
-            }
-
+            if (currentBallOverallIndex >= ballEvents.length) { handleEndOfMatch(); return; }
             let currentBallEventData = ballEvents[currentBallOverallIndex];
-
             let previousInningsNumber = currentInningsNumber;
             if (currentInningsNumber === 1 && currentBallOverallIndex >= innings1Log.length) {
-                if (innings2Log.length > 0) {
-                    currentInningsNumber = 2;
-                } else {
-                    handleEndOfMatch();
-                    return;
-                }
+                if (innings2Log.length > 0) { currentInningsNumber = 2; }
+                else { handleEndOfMatch(); return; }
             }
-
-            if (currentInningsNumber !== previousInningsNumber) {
-                setupInningsUI(2);
-            }
-
+            if (currentInningsNumber !== previousInningsNumber) { setupInningsUI(2); }
             updateUIDisplay(currentBallEventData);
-
-            if (currentInningsNumber === 2 && targetToChase > 0 && runningScoreInInnings >= targetToChase) {
-                handleEndOfMatch();
-            } else if (currentBallOverallIndex === ballEvents.length - 1) {
-                handleEndOfMatch();
-            }
+            if (currentInningsNumber === 2 && targetToChase > 0 && runningScoreInInnings >= targetToChase) { handleEndOfMatch(); }
+            else if (currentBallOverallIndex === ballEvents.length - 1) { handleEndOfMatch(); }
         }
 
         nextBallBtn.addEventListener('click', handleNextBall);
         startAutoPlayBtn.addEventListener('click', () => {
             if (winMessageContainerEl.classList.contains('hidden')) {
-                startAutoPlayBtn.classList.add('hidden');
-                pauseAutoPlayBtn.classList.remove('hidden');
+                startAutoPlayBtn.classList.add('hidden'); pauseAutoPlayBtn.classList.remove('hidden');
                 nextBallBtn.disabled = true; simSpeedSelect.disabled = true;
                 const speed = parseInt(simSpeedSelect.value, 10);
-
                 function autoPlay() {
                     if (!winMessageContainerEl.classList.contains('hidden')) {
                         clearInterval(autoPlayInterval); autoPlayInterval = null;
                         pauseAutoPlayBtn.classList.add('hidden'); startAutoPlayBtn.classList.remove('hidden');
-                        disableControls();
-                        return;
+                        disableControls(); return;
                     }
                     handleNextBall();
                 }
@@ -466,8 +470,7 @@
         });
         pauseAutoPlayBtn.addEventListener('click', () => {
             clearInterval(autoPlayInterval); autoPlayInterval = null;
-            pauseAutoPlayBtn.classList.add('hidden');
-            startAutoPlayBtn.classList.remove('hidden');
+            pauseAutoPlayBtn.classList.add('hidden'); startAutoPlayBtn.classList.remove('hidden');
             if (!winMessageContainerEl.classList.contains('hidden')) {
                 nextBallBtn.disabled = true; startAutoPlayBtn.disabled = true;
             } else {
@@ -475,7 +478,6 @@
             }
             simSpeedSelect.disabled = false;
         });
-
         initializeReplay();
     </script>
 </body>
