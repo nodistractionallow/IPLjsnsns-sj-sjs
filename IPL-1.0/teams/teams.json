@@ -25,6 +25,7 @@
         "logo": "https://feeds-100mb.s3-ap-southeast-1.amazonaws.com/teamLogos/sSNjJEkBAx1742900310RR---New-Logo.png",
         "colorPrimary": "#004BA0",
         "colorSecondary": "#D4AF37",
+        "hoverColor": "#E75480",
         "players": [
             "Nathan Ellis",
             "Bhuvneshwar Kumar",
@@ -105,6 +106,7 @@
         "logo": "https://scores.iplt20.com/ipl/teamlogos/PBKS.png",
         "colorPrimary": "#C2762B",
         "colorSecondary": "#FFFFFF",
+        "hoverColor": "#FF7F7F",
         "players": [
             "Shardul Thakur",
             "Manish Pandey",
@@ -125,6 +127,7 @@
         "logo": "https://feeds-100mb.s3-ap-southeast-1.amazonaws.com/teamLogos/NVAlbtIyB81740555172aFPMviEPyJ1710927747rcb.png",
         "colorPrimary": "#A31D21",
         "colorSecondary": "#1B1920",
+        "hoverColor": "#FF0000",
         "players": [
             "Shahrukh Khan",
             "Virat Kohli",

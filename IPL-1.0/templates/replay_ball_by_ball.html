@@ -18,10 +18,10 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 25px;
-            background-color: #181818; /* Darker header */
-            color: #ffcc00;
-            border-bottom: 2px solid #ffcc00;
-            position: fixed; /* Fixed header */
+            background-color: #181818;
+            color: #f1c40f;
+            border-bottom: 2px solid #f1c40f;
+            position: fixed;
             top: 0;
             left: 0;
             width: 100%;
@@ -32,12 +32,12 @@
             margin: 0;
             font-size: 1.6em;
             font-weight: bold;
-            color: #ffcc00; /* Ensure h1 color is set if not inheriting properly */
+            color: #f1c40f;
         }
         .new-match-button {
             padding: 10px 18px;
             font-size: 1em;
-            background-color: #ffcc00;
+            background-color: #f1c40f;
             color: #1e272e;
             border: none;
             border-radius: 25px;
@@ -60,12 +60,10 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            margin: 20px auto; /* Added margin for spacing from header if body padding-top is not enough */
+            margin: 20px auto;
         }
 
-        /* Rest of existing styles from previous version, merged carefully */
         h2, h3 { text-align: center; color: #ffcc00; }
-        /* h1 is now in header, so main page h1 can be removed or restyled if another exists */
         h2 { font-size: 1.6em; margin-bottom: 15px; border-bottom: 1px solid #ffcc00; padding-bottom: 10px;}
         h3 { font-size: 1.2em; margin-bottom: 10px; color: #eee;}
         .section { margin-bottom: 15px; padding: 12px; background-color: #3a3a3a; border-radius: 8px; }
@@ -73,13 +71,19 @@
         .section strong { color: #ffcc00; }
 
         #led-display { text-align: center; padding: 15px; background-color: #111; border-radius: 8px; margin-bottom: 15px; font-size: 1.5em; display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; }
-        #led-display span { padding: 8px 15px; border-radius: 5px; background-color: #000; min-width: 80px; display: inline-block; margin: 5px; }
-        .led-default { background-color: #444; color: #fff; }
-        .led-runs-0 { background-color: #757575; color: #fff; }
-        .led-runs-123 { background-color: #4CAF50; color: white; }
-        .led-runs-456 { background-color: #FF9800; color: white; }
-        .led-wicket { background-color: #F44336; color: white; }
-        .led-extra { background-color: #2196F3; color: white; }
+        #led-display span { padding: 8px 15px; border-radius: 5px; min-width: 80px; display: inline-block; margin: 5px; text-align:center; }
+
+        /* LED Outcome Specific Styles */
+        #led-ball-outcome { /* Base style for the outcome span itself */
+            font-weight: bold;
+        }
+        .led-runs-0 { background-color: #2ecc71; color: white; } /* Green */
+        .led-runs-123 { background-color: #ecf0f1; color: #2c3e50; } /* Light grey/white, dark text */
+        .led-runs-456 { background-color: #f1c40f; color: #333; } /* Yellow, dark text */
+        .led-wicket { background-color: #e74c3c; color: white; } /* Red */
+        .led-extra { background-color: #3498db; color: white; } /* Blue (for Wide/NoBall) */
+        .led-default { background-color: #bdc3c7; color: #333; } /* Grey for default/unknown */
+
 
         .player-highlight { font-weight: bold; color: #ffeb3b; }
 
@@ -96,9 +100,6 @@
 
         .win-message { text-align: center; font-size: 1.5em; color: #4CAF50; font-weight: bold; padding: 15px; background-color: #dff0d8; border: 1px solid #4CAF50; border-radius: 5px; color:#3c763d;}
         .hidden { display: none; }
-        /* Removed general 'a' styling if not needed globally, or keep if other links exist */
-        /* a { color: #ffcc00; text-decoration: none; } */
-        /* a:hover { text-decoration: underline;} */
         .team-logo-pbs { width: 24px; height: 24px; margin-right: 8px; vertical-align: middle; border-radius: 50%; background-color: #fff; padding:1px; }
         .team-display { display: flex; align-items: center; margin-bottom: 5px;}
         .team-display .name {font-size: 1.1em; font-weight:bold;}
@@ -116,13 +117,8 @@
             </form>
         </div>
     </header>
-    {# <hr class="header-divider"> #}  <!-- Divider can be part of header border-bottom -->
 
     <div class="container">
-        {# Removed the old H1 and "New Match / Select Teams" link from here #}
-        {# <h1>Match Replay</h1> #}
-        {# <p style="text-align:center;"><a href="{{ url_for('index') }}">New Match / Select Teams</a></p> #}
-
         <div id="tossDisplay" class="section"></div>
 
         <div id="led-display">
@@ -151,7 +147,7 @@
         </div>
 
         <div class="section players-info">
-            <h3>Current Players</h3>
+            <h3>Players</h3>
             <p>On Strike: <span id="batsman-onstrike" class="player-highlight">N/A</span></p>
             <p>Non-Striker: <span id="batsman-nonstrike">N/A</span></p>
             <p>Current Bowler: <span id="current-bowler">N/A</span></p>
@@ -184,9 +180,6 @@
 
     <script>
         const fullMatchData = {{ full_match_data | tojson }};
-        // Ensure team short names are available to JS if needed, though already used in Jinja title/header
-        // const team1ShortName = "{{ team1_short_name }}";
-        // const team2ShortName = "{{ team2_short_name }}";
 
         const tossDisplayEl = document.getElementById('tossDisplay');
         const ledBallNumEl = document.getElementById('led-ball-number');
@@ -240,26 +233,62 @@
             return `${overs}.${ballsInOver}`;
         }
 
-        function parseEventStringForLed(eventString) { // Removed ballData param as it wasn't used
-            let outcomeText = "..."; // Default for unparsed
+        function parseEventStringForLed(eventString) {
+            let outcomeText = "...";
             let outcomeClass = "led-default";
+            const normalizedEvent = eventString.toUpperCase();
 
-            const eventLower = eventString.toLowerCase();
+            // Extract action part: The word after "BatsmanInitial " and before " Score:"
+            let actionPart = "";
+            const toMarker = " TO ";
+            const scoreMarker = " SCORE:";
 
-            // Order of checks can be important
-            if (eventLower.includes(" wicket") || eventLower.includes(" w ")) { outcomeClass = 'led-wicket'; outcomeText = "WICKET!"; }
-            else if (eventLower.includes("wide")) { outcomeClass = 'led-extra'; outcomeText = "WIDE"; }
-            // Add No Ball if logs distinguish it clearly
-            // else if (eventLower.includes("noball") || eventLower.includes("nb")) { outcomeClass = 'led-extra'; outcomeText = "NO BALL"; }
-            else if (eventLower.includes("six!") || eventLower.includes(" 6 runs") || eventString.match(/\s6\s/)) { outcomeClass = 'led-runs-456'; outcomeText = "6"; }
-            else if (eventLower.includes(" 4 runs") || eventString.match(/\s4\s/)) { outcomeClass = 'led-runs-456'; outcomeText = "4"; }
-            else if (eventLower.includes(" 5 runs") || eventString.match(/\s5\s/)) { outcomeClass = 'led-runs-456'; outcomeText = "5"; } // Rare
-            else if (eventLower.includes(" 3 runs") || eventString.match(/\s3\s/)) { outcomeClass = 'led-runs-123'; outcomeText = "3"; }
-            else if (eventLower.includes(" 2 runs") || eventString.match(/\s2\s/)) { outcomeClass = 'led-runs-123'; outcomeText = "2"; }
-            else if (eventLower.includes(" 1 run") || eventString.match(/\s1\s/)) { outcomeClass = 'led-runs-123'; outcomeText = "1"; }
-            else if (eventLower.includes(" 0 runs") || eventLower.includes("no run") || eventString.endsWith(" 0")) { outcomeClass = 'led-runs-0'; outcomeText = "0"; }
+            let toMarkerIndex = normalizedEvent.indexOf(toMarker);
+            if (toMarkerIndex !== -1) {
+                let relevantPart = normalizedEvent.substring(toMarkerIndex + toMarker.length);
+                // Find batsman initial (first word after "TO ")
+                let firstSpaceAfterBatsman = relevantPart.indexOf(" ");
+                if (firstSpaceAfterBatsman !== -1) {
+                    let afterBatsman = relevantPart.substring(firstSpaceAfterBatsman + 1).trim();
+                    let scoreIndexInAction = afterBatsman.indexOf(scoreMarker);
+                    if (scoreIndexInAction !== -1) {
+                         actionPart = afterBatsman.substring(0, scoreIndexInAction).trim();
+                    } else { // If score marker not found after batsman, maybe it's just the action
+                         actionPart = afterBatsman;
+                    }
+                    // Further split actionPart if it's multi-word, take the first word for simple outcomes
+                    actionPart = actionPart.split(" ")[0];
+                }
+            }
 
-            return { text: outcomeText, cssClass: outcomeClass };
+            // Fallback for WICKET if it's followed by details e.g. "W Caught by..."
+            // The " W " check is crucial for wickets not having a simple run-like actionPart
+            if (normalizedEvent.includes(" W ") && !normalizedEvent.includes(" WIDE")) {
+                 actionPart = "W";
+            }
+
+            if (actionPart === "W") {
+                outcomeText = "WICKET"; outcomeClass = "led-wicket";
+            } else if (actionPart === "WIDE") {
+                outcomeText = "WIDE"; outcomeClass = "led-extra";
+            } else if (actionPart === "NOBALL") { // Assuming NOBALL might be an actionPart
+                outcomeText = "NO BALL"; outcomeClass = "led-extra";
+            } else if (actionPart === "6" || normalizedEvent.includes("SIX!")) {
+                outcomeText = "SIX"; outcomeClass = "led-runs-456";
+            } else if (actionPart === "4") {
+                outcomeText = "FOUR"; outcomeClass = "led-runs-456";
+            } else if (actionPart === "5") {
+                outcomeText = "5 RUNS"; outcomeClass = "led-runs-456";
+            } else if (actionPart === "3") {
+                outcomeText = "3 RUNS"; outcomeClass = "led-runs-123";
+            } else if (actionPart === "2") {
+                outcomeText = "2 RUNS"; outcomeClass = "led-runs-123";
+            } else if (actionPart === "1") {
+                outcomeText = "1 RUN"; outcomeClass = "led-runs-123";
+            } else if (actionPart === "0" || normalizedEvent.includes("NO RUN")) {
+                outcomeText = "NO RUN"; outcomeClass = "led-runs-0";
+            }
+            return { outcomeText, outcomeClass };
         }
 
         function updateUIDisplay(logEntry) {
@@ -273,11 +302,15 @@
             currentOversEl.textContent = oversStr;
             ledScoreEl.textContent = `${runningScoreInInnings}/${runningWicketsInInnings}`;
 
-            const parsedLedInfo = parseEventStringForLed(logEntry.event);
-            ledOutcomeEl.textContent = parsedLedInfo.text;
-            // Clear previous color classes before adding new one
-            ledOutcomeEl.className = ''; // Remove all classes
-            ledOutcomeEl.classList.add(parsedLedInfo.cssClass); // Add the specific outcome class
+            const parsedLed = parseEventStringForLed(logEntry.event);
+            ledOutcomeEl.textContent = parsedLed.outcomeText;
+
+            ledOutcomeEl.classList.remove('led-runs-0', 'led-runs-123', 'led-runs-456', 'led-wicket', 'led-extra', 'led-default');
+            if (parsedLed.outcomeClass) {
+                ledOutcomeEl.classList.add(parsedLed.outcomeClass);
+            } else {
+                ledOutcomeEl.classList.add('led-default');
+            }
 
             const ballNumMatch = logEntry.event.match(/^(\d+\.\d+)/);
             ledBallNumEl.textContent = ballNumMatch ? ballNumMatch[1] : oversStr;
