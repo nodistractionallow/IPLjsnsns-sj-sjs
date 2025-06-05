@@ -37,6 +37,15 @@ class MatchSimulator:
         if not team1_player_initials_list: raise ValueError(f"Player list for {self.team1_code} is empty/missing.")
         if not team2_player_initials_list: raise ValueError(f"Player list for {self.team2_code} is empty/missing.")
 
+        # Call _initialize_fresh_game_state() early to set up default structures
+        # It uses self.team1_code and self.team2_code which are set above.
+        self._initialize_fresh_game_state()
+
+        # Initialize player stats holders
+        self.team1_players_stats = {}
+        self.team2_players_stats = {}
+
+        # Pre-process player stats for both teams
         for initial in team1_player_initials_list:
             raw_stats = None
             try: raw_stats = accessJSON.getPlayerInfo(initial)
@@ -49,22 +58,18 @@ class MatchSimulator:
             except KeyError: print(f"Info: No raw stats entry for {initial} (Team {self.team2_code}).")
             self.team2_players_stats[initial] = self._preprocess_player_stats(initial, raw_stats)
 
-        # Batting orders and bowler phase lists are team-specific, initialized after basic stats are processed
-        self.batting_order = {self.team1_code: [], self.team2_code: []}
-        self.bowlers_list = {self.team1_code: [], self.team2_code: []}
-        self.team_bowler_phases = {
-            self.team1_code: {'powerplay': [], 'middle': [], 'death': []},
-            self.team2_code: {'powerplay': [], 'middle': [], 'death': []}
-        }
-        self._initialize_batting_order_and_bowlers() # This now also sets up phase lists
+        # Initialize batting orders and bowler phase lists for BOTH teams (depends on processed stats)
+        self._initialize_batting_order_and_bowlers()
 
+        # If saved_state is provided, load it. This will overwrite parts of the fresh state.
         if saved_state and saved_state.get('toss_winner'):
             self.load_from_saved_state(saved_state)
-        else:
-            self._initialize_fresh_game_state()
+        # Else (new game): _initialize_fresh_game_state already set current_innings_num = 0 etc.
+        # app.py will call perform_toss() for a new game.
 
 
     def _initialize_fresh_game_state(self):
+        # This method now correctly uses self.team1_code and self.team2_code for next_batsman_index keys
         self.batting_team_code = None; self.bowling_team_code = None
         self.current_batsmen = {'on_strike': None, 'non_strike': None}
         self.current_bowler = None
