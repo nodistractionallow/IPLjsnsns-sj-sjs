@@ -469,6 +469,7 @@
     <header class="match-header">
         <div class="header-title"><h1>{{ team1_short_name }} vs {{ team2_short_name }}</h1></div>
         <div class="header-actions">
+            <div class="header-coin-display" style="margin-right: 20px; font-weight: bold; font-size: 1em; color: var(--header-accent, #f1c40f); display: flex; align-items: center;">Coins: <span id="userCoinBalanceReplay" style="margin-left: 5px;">Loading...</span> <span id="coinIconPlaceholderReplay" style="margin-left: 3px;"></span></div>
             <form action="{{ url_for('index') }}" method="get" style="margin: 0; display: inline-block;"><button type="submit" class="new-match-button">New Match</button></form>
             <button id="themeToggleBtnBallByBall" style="padding: 8px 12px; margin-left: 10px; cursor: pointer;">Toggle Theme</button>
         </div>
@@ -582,6 +583,65 @@
     </div>
 
     <script>
+        let currentUserCoinsReplay = 0;
+
+        // Function to get/generate client ID
+        function getClientId() {
+            let clientId = localStorage.getItem('ipl_user_client_id');
+            if (!clientId) {
+                if (window.crypto && window.crypto.randomUUID) {
+                    clientId = window.crypto.randomUUID();
+                } else {
+                    clientId = 'user-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+                }
+                localStorage.setItem('ipl_user_client_id', clientId);
+                console.log('New client ID generated (replay page):', clientId);
+            }
+            return clientId;
+        }
+
+        async function initializeUserSessionReplay() {
+            const clientId = getClientId();
+            const coinBalanceSpanReplay = document.getElementById('userCoinBalanceReplay');
+
+            if (!coinBalanceSpanReplay) {
+                console.error('userCoinBalanceReplay span not found');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/init_user_or_get_balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ client_id: clientId })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+                    console.error('Error initializing user session (replay page):', response.status, errorData);
+                    coinBalanceSpanReplay.textContent = 'Error';
+                    currentUserCoinsReplay = 0;
+                    return;
+                }
+
+                const data = await response.json();
+                currentUserCoinsReplay = data.coins;
+                coinBalanceSpanReplay.textContent = currentUserCoinsReplay;
+
+                if(data.status) {
+                    console.log('User status (replay page):', data.status);
+                    // No alert for rate_limited on replay page, just log it.
+                }
+
+            } catch (error) {
+                console.error('Network or other error initializing user session (replay page):', error);
+                coinBalanceSpanReplay.textContent = 'Error';
+                currentUserCoinsReplay = 0;
+            }
+        }
+
         const fullMatchData = {{ full_match_data | tojson }};
 
         // DOM Elements (assuming they are all correctly defined above)
@@ -646,6 +706,106 @@
         let runningLegalBallsInInnings = 0;
         let targetToChase = 0;
         let autoPlayInterval = null;
+
+        // Make initializeReplay async
+        async function initializeReplay() {
+            await initializeUserSessionReplay(); // Call user session init here
+
+            ballEvents = innings1Log.concat(innings2Log);
+            if (ballEvents.length === 0 && (!innings1Log || innings1Log.length === 0)) {
+                lastBallCommentaryEl.textContent = "No ball-by-ball data available for this match.";
+                disableControls();
+                winMessageContainerEl.textContent = fullMatchData.win_msg || "Match data incomplete.";
+                winMessageContainerEl.classList.remove('hidden');
+                if(fullMatchData.innings1_runs !== undefined) { // If there's at least innings 1 summary, show scorecard
+                    const scorecardHTML = generateFullScorecardHTML(fullMatchData);
+                    finalScorecardDiv.innerHTML = scorecardHTML;
+                    finalScorecardDiv.style.display = 'block'; // Or 'flex' depending on modal styling
+                }
+                return;
+            }
+            tossDisplayEl.textContent = fullMatchData.toss_msg;
+            currentInningsNumber = 1;
+            currentBallOverallIndex = -1;
+            runningScoreInInnings = 0; runningWicketsInInnings = 0; runningLegalBallsInInnings = 0;
+            setupInningsUI(1);
+            winMessageContainerEl.classList.add('hidden');
+            // nextBallBtn.disabled = false; // This will be handled by the consolidated logic below
+            // startAutoPlayBtn.disabled = false; // This will be handled by the consolidated logic below
+            // pauseAutoPlayBtn.classList.add('hidden'); // This will be handled by the consolidated logic below
+            // simSpeedSelect.disabled = false; // This will be handled by the consolidated logic below
+
+            // finalScorecardDiv.style.display = 'none';
+            if (finalScorecardModal) finalScorecardModal.style.display = 'none';
+
+            if (firstInningsSummaryDisplay) {
+                firstInningsSummaryDisplay.style.display = 'none';
+                firstInningsSummaryDisplay.innerHTML = '';
+            }
+
+            // Hide 2nd Innings Summary and clear its content
+            const secondInnSummary = document.getElementById('secondInningsSummaryDisplay');
+            if (secondInnSummary) {
+                secondInnSummary.style.display = 'none';
+                secondInnSummary.innerHTML = '';
+            }
+
+            // Hide 2nd Innings Scorecard Modal
+            const secondInnModal = document.getElementById('secondInningsScorecardModal');
+            if (secondInnModal) {
+                secondInnModal.style.display = 'none';
+            }
+
+            if (currentRunRateDisplay) currentRunRateDisplay.style.display = 'none';
+            if (secondInningsRRDisplay) secondInningsRRDisplay.style.display = 'none';
+            if (requiredRunRateDisplay) requiredRunRateDisplay.style.display = 'none';
+
+            // Explicitly set display styles and states for control bar elements
+            const nextBallButton = document.getElementById('nextBallBtn');
+            if (nextBallButton) {
+                nextBallButton.style.display = 'inline-block';
+                nextBallButton.disabled = false;
+            }
+
+            const speedControl = document.querySelector('.speed-control-container');
+            if (speedControl) speedControl.style.display = 'flex';
+            if (simSpeedSelect) simSpeedSelect.disabled = false;
+
+            const startAutoPlayButton = document.getElementById('startAutoPlayBtn');
+            if (startAutoPlayButton) {
+                startAutoPlayButton.style.display = 'inline-block';
+                startAutoPlayButton.classList.remove('hidden');
+                startAutoPlayButton.disabled = false;
+            }
+
+            const pauseAutoPlayButton = document.getElementById('pauseAutoPlayBtn');
+            if (pauseAutoPlayButton) {
+                pauseAutoPlayButton.style.display = 'none';
+                pauseAutoPlayButton.classList.add('hidden');
+                pauseAutoPlayButton.disabled = true;
+            }
+
+            const viewScorecardButton = document.getElementById('viewScorecardBtn');
+            if (viewScorecardButton) {
+                viewScorecardButton.style.display = 'none';
+                // Event listener for View Scorecard button (setup once)
+                if (!viewScorecardButton.hasAttribute('data-listener-attached')) {
+                    viewScorecardButton.addEventListener('click', () => {
+                        if (finalScorecardModal) finalScorecardModal.style.display = 'flex';
+                        if (bottomControlBar) bottomControlBar.style.display = 'none';
+                    });
+                    viewScorecardButton.setAttribute('data-listener-attached', 'true');
+                }
+            }
+
+            if (bottomControlBar) bottomControlBar.style.display = 'flex';
+
+            console.log('[DEBUG] initializeReplay called.');
+
+            if (firstInningsScorecardModal) {
+                firstInningsScorecardModal.style.display = 'none';
+            }
+        }
 
         function formatOver(legalBalls) {
             if (legalBalls === undefined || legalBalls === null || legalBalls < 0) return "0.0";
@@ -1384,7 +1544,11 @@
         }
         // End of Theme Toggle Logic
 
-        initializeReplay();
+        // Call initializeReplay (now async)
+        // If it's the main entry point, it can be called directly or within an async IIFE
+        (async () => {
+            await initializeReplay();
+        })();
     </script>
 </body>
 </html>
