@@ -792,11 +792,21 @@
             if (bottomControlBar) bottomControlBar.style.display = 'flex'; // Ensure control bar is visible
 
             // Set initial button states correctly without calling disableControls()
+            console.log('[DEBUG] initializeReplay called.');
+
             nextBallBtn.disabled = false;
-            startAutoPlayBtn.disabled = false;
+            simSpeedSelect.disabled = false;
+            if (bottomControlBar) bottomControlBar.style.display = 'flex'; // Ensure control bar is visible
+
             startAutoPlayBtn.classList.remove('hidden');
+            startAutoPlayBtn.style.display = 'inline-block';
+            startAutoPlayBtn.disabled = false;
+            console.log('[DEBUG] initial: startAutoPlayBtn shown, display inline-block, enabled.');
+
             pauseAutoPlayBtn.classList.add('hidden');
-            pauseAutoPlayBtn.disabled = true; // Important: Pause should be disabled initially
+            pauseAutoPlayBtn.style.display = 'none';
+            pauseAutoPlayBtn.disabled = true;
+            console.log('[DEBUG] initial: pauseAutoPlayBtn hidden, display none, disabled.');
         }
 
         function handleEndOfMatch() {
@@ -830,10 +840,16 @@
                 autoPlayInterval = null;
             }
             // Explicitly set final state for both buttons
+            console.log('[DEBUG] disableControls called.');
             startAutoPlayBtn.classList.add('hidden');
+            startAutoPlayBtn.style.display = 'none';
             startAutoPlayBtn.disabled = true;
+            console.log('[DEBUG] startAutoPlayBtn hidden, display none, disabled.');
+
             pauseAutoPlayBtn.classList.add('hidden');
-            pauseAutoPlayBtn.disabled = true; // Ensure it's also marked as disabled logically
+            pauseAutoPlayBtn.style.display = 'none';
+            pauseAutoPlayBtn.disabled = true;
+            console.log('[DEBUG] pauseAutoPlayBtn hidden, display none, disabled.');
         }
 
         function handleNextBall() {
@@ -857,37 +873,56 @@
 
         nextBallBtn.addEventListener('click', handleNextBall);
         startAutoPlayBtn.addEventListener('click', () => {
-            if (winMessageContainerEl.classList.contains('hidden')) {
-                startAutoPlayBtn.classList.add('hidden'); pauseAutoPlayBtn.classList.remove('hidden');
+            if (winMessageContainerEl.classList.contains('hidden')) { // If game not over
+                console.log('[DEBUG] startAutoPlayBtn clicked. Current state: start visible, pause hidden.');
+
+                startAutoPlayBtn.classList.add('hidden');
+                startAutoPlayBtn.style.display = 'none'; // Direct style manipulation
+                console.log('[DEBUG] startAutoPlayBtn hidden and display set to none.');
+
+                pauseAutoPlayBtn.classList.remove('hidden');
+                pauseAutoPlayBtn.style.display = 'inline-block'; // Or 'block', depending on original display type
+                pauseAutoPlayBtn.disabled = false; // Ensure it's enabled
+                console.log('[DEBUG] pauseAutoPlayBtn shown, display set to inline-block, and enabled.');
+
                 nextBallBtn.disabled = true; simSpeedSelect.disabled = true;
                 const speed = parseInt(simSpeedSelect.value, 10);
                 function autoPlay() {
                     if (!winMessageContainerEl.classList.contains('hidden')) {
                         clearInterval(autoPlayInterval); autoPlayInterval = null;
-                        pauseAutoPlayBtn.classList.add('hidden'); startAutoPlayBtn.classList.remove('hidden');
+                        // No need to toggle buttons here, disableControls will handle it
                         disableControls(); return;
                     }
                     handleNextBall();
                 }
-                autoPlay();
-                if (!winMessageContainerEl.classList.contains('hidden')) return;
+                autoPlay(); // Call once immediately
+                if (!winMessageContainerEl.classList.contains('hidden')) return; // Don't start interval if game ended on first sync call
                 autoPlayInterval = setInterval(autoPlay, speed);
             }
         });
         pauseAutoPlayBtn.addEventListener('click', () => {
+            console.log('[DEBUG] pauseAutoPlayBtn clicked. Current state: pause visible, start hidden.');
             clearInterval(autoPlayInterval); autoPlayInterval = null;
+
+            pauseAutoPlayBtn.classList.add('hidden');
+            pauseAutoPlayBtn.style.display = 'none'; // Direct style manipulation
+            pauseAutoPlayBtn.disabled = true; // Disable it when hidden
+            console.log('[DEBUG] pauseAutoPlayBtn hidden, display set to none, and disabled.');
 
             if (!winMessageContainerEl.classList.contains('hidden')) { // Game is over
                 // disableControls() would have been called, but to be safe:
                 startAutoPlayBtn.classList.add('hidden');
+                startAutoPlayBtn.style.display = 'none';
                 startAutoPlayBtn.disabled = true;
-                nextBallBtn.disabled = true;
+                console.log('[DEBUG] Game is over, startAutoPlayBtn remains hidden and disabled.');
+                nextBallBtn.disabled = true; // Ensure this is also disabled
             } else { // Game not over
-                startAutoPlayBtn.classList.remove('hidden'); // Show Start Auto-Play button
-                startAutoPlayBtn.disabled = false;          // Enable Start Auto-Play button
-                nextBallBtn.disabled = false;               // Enable Next Ball button
+                startAutoPlayBtn.classList.remove('hidden');
+                startAutoPlayBtn.style.display = 'inline-block';
+                startAutoPlayBtn.disabled = false;
+                console.log('[DEBUG] startAutoPlayBtn shown, display set to inline-block, and enabled.');
+                nextBallBtn.disabled = false;
             }
-            pauseAutoPlayBtn.classList.add('hidden'); // Hide Pause button itself
             simSpeedSelect.disabled = false; // Always re-enable speed select when pausing
         });
 
