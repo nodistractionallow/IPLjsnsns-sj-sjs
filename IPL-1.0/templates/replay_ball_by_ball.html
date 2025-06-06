@@ -489,6 +489,11 @@
                 <!-- Content will be populated by JavaScript. Structure will be similar to other .team-display divs -->
             </div>
 
+            <!-- New placeholder for 2nd Innings Summary -->
+            <div id="secondInningsSummaryDisplay" class="team-display" style="display: none; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--log-entry-border, #444);">
+                <!-- Content will be populated by JavaScript. -->
+            </div>
+
             <div class="team-display batting-team-display">
                 <img src="" alt="Batting Team Logo" class="team-logo-pbs" id="battingTeamLogo">
                 <div>
@@ -536,6 +541,17 @@
                 <h2 style="text-align: center; color: var(--heading-color); margin-bottom: 20px;">First Innings Scorecard</h2>
                 <div id="firstInningsScorecardDataContainer">
                     <!-- Scorecard content for 1st innings will be injected here by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- New Modal for Second Innings Scorecard -->
+        <div id="secondInningsScorecardModal" class="modal-overlay" style="display: none;">
+            <div class="modal-content" id="secondInningsModalContent">
+                <button id="closeSecondInningsModalBtn" class="close-modal-button">&times;</button>
+                <h2 style="text-align: center; color: var(--heading-color); margin-bottom: 20px;">Second Innings Scorecard</h2>
+                <div id="secondInningsScorecardDataContainer">
+                    <!-- Scorecard content for 2nd innings will be injected here by JavaScript -->
                 </div>
             </div>
         </div>
@@ -611,6 +627,14 @@
         const closeFirstInningsModalBtn = document.getElementById('closeFirstInningsModalBtn');
         // Duplicates removed from here
 
+        const closeSecondInnModalBtn = document.getElementById('closeSecondInningsModalBtn');
+        const secondInnModal = document.getElementById('secondInningsScorecardModal');
+
+        if (closeSecondInnModalBtn && secondInnModal) {
+            closeSecondInnModalBtn.addEventListener('click', () => {
+                secondInnModal.style.display = 'none';
+            });
+        }
 
         let innings1Log = fullMatchData.innings1_log || [];
         let innings2Log = fullMatchData.innings2_log || [];
@@ -964,6 +988,20 @@
                 firstInningsSummaryDisplay.style.display = 'none';
                 firstInningsSummaryDisplay.innerHTML = '';
             }
+
+            // Hide 2nd Innings Summary and clear its content
+            const secondInnSummary = document.getElementById('secondInningsSummaryDisplay');
+            if (secondInnSummary) {
+                secondInnSummary.style.display = 'none';
+                secondInnSummary.innerHTML = ''; // Clear any previous content
+            }
+
+            // Hide 2nd Innings Scorecard Modal
+            const secondInnModal = document.getElementById('secondInningsScorecardModal');
+            if (secondInnModal) {
+                secondInnModal.style.display = 'none';
+            }
+
             if (currentRunRateDisplay) currentRunRateDisplay.style.display = 'none';
             if (secondInningsRRDisplay) secondInningsRRDisplay.style.display = 'none';
             if (requiredRunRateDisplay) requiredRunRateDisplay.style.display = 'none';
@@ -1033,6 +1071,136 @@
             winMessageContainerEl.textContent = fullMatchData.win_msg || "Match Concluded.";
             winMessageContainerEl.classList.remove('hidden'); // Show text message on main page
             disableControls();
+
+            // Ensure First Innings Summary is visible (it's usually populated in setupInningsUI(2))
+            const firstInnSummary = document.getElementById('firstInningsSummaryDisplay');
+            if (firstInnSummary && firstInnSummary.innerHTML.trim() !== '') { // Check if populated
+                firstInnSummary.style.display = 'flex';
+            } else if (firstInnSummary && fullMatchData.innings1_bat_team && fullMatchData.innings1_runs !== undefined) {
+                // If innings 2 never started, setupInningsUI(2) was never called. Populate 1st innings summary here.
+                const firstInnBatTeamCode = fullMatchData.innings1_bat_team;
+                const firstInnBatTeamData = (firstInnBatTeamCode.toLowerCase() === fullMatchData.team1_code.toLowerCase()) ? fullMatchData.team1_data : fullMatchData.team2_data;
+                let firstSummaryHTML = `
+                    <img src="${firstInnBatTeamData.logo || ''}" alt="${(firstInnBatTeamData.fullName || firstInnBatTeamCode) + ' Logo'}" class="team-logo-pbs">
+                    <div>
+                        <span class="name">${firstInnBatTeamData.fullName || firstInnBatTeamCode}</span>
+                        <span class="score-details">Score:
+                            <span>${fullMatchData.innings1_runs}</span>/<span>${fullMatchData.innings1_wickets}</span>
+                            (${formatOver(fullMatchData.innings1_balls)} Overs)
+                        </span>
+                        <button class="view-scorecard-btn" id="viewFirstInningsScorecardBtn">View Scorecard</button>
+                    </div>
+                `;
+                firstInnSummary.innerHTML = firstSummaryHTML;
+                firstInnSummary.style.display = 'flex';
+                // Note: Event listener for this dynamically added viewFirstInningsScorecardBtn will be handled in the next subtask.
+            }
+
+            const secondInnSummary = document.getElementById('secondInningsSummaryDisplay');
+            if (secondInnSummary && fullMatchData.innings2_bat_team && fullMatchData.innings2_runs !== undefined) {
+                const secondInnBatTeamCode = fullMatchData.innings2_bat_team;
+                const secondInnBatTeamData = (secondInnBatTeamCode.toLowerCase() === fullMatchData.team1_code.toLowerCase()) ? fullMatchData.team1_data : fullMatchData.team2_data;
+
+                const teamLogo = secondInnBatTeamData.logo || '';
+                const teamFullName = secondInnBatTeamData.fullName || secondInnBatTeamCode;
+                const runs = fullMatchData.innings2_runs;
+                const wickets = fullMatchData.innings2_wickets;
+                const balls = fullMatchData.innings2_balls;
+                const oversFormatted = formatOver(balls);
+
+                let summaryHTML = `
+                    <img src="${teamLogo}" alt="${teamFullName} Logo" class="team-logo-pbs">
+                    <div>
+                        <span class="name">${teamFullName}</span>
+                        <span class="score-details">Score:
+                            <span>${runs}</span>/<span>${wickets}</span>
+                            (${oversFormatted} Overs)
+                        </span>
+                        <button class="view-scorecard-btn" id="viewSecondInningsScorecardBtn">View Scorecard</button>
+                    </div>
+                `;
+                secondInnSummary.innerHTML = summaryHTML;
+                secondInnSummary.style.display = 'flex';
+
+                const viewSecondInnScorecardBtn = document.getElementById('viewSecondInningsScorecardBtn');
+                if (viewSecondInnScorecardBtn) {
+                    viewSecondInnScorecardBtn.addEventListener('click', () => {
+                        if (!fullMatchData || !fullMatchData.innings2_bat_team) return; // Safety check
+
+                        const teamsDataForFunc = { // Create a map for easy lookup by code
+                            [fullMatchData.team1_code.toLowerCase()]: fullMatchData.team1_data,
+                            [fullMatchData.team2_code.toLowerCase()]: fullMatchData.team2_data
+                        };
+
+                        // Determine bowling team for 2nd innings
+                        const secondInningsBatTeam = fullMatchData.innings2_bat_team;
+                        const secondInningsBowlTeam = (secondInningsBatTeam.toLowerCase() === fullMatchData.team1_code.toLowerCase()) ? fullMatchData.team2_code : fullMatchData.team1_code;
+
+                        let secondInningsHtmlContent = generateInningsHTML(
+                            2, // Innings Number
+                            secondInningsBatTeam,
+                            secondInningsBowlTeam,
+                            fullMatchData.innings2_runs,
+                            fullMatchData.innings2_wickets,
+                            fullMatchData.innings2_balls,
+                            fullMatchData.innings2_battracker,
+                            fullMatchData.innings2_bowltracker,
+                            teamsDataForFunc
+                        );
+
+                        const hrTagToRemove = '<hr style="border:0; height: 1px; background: var(--scorecard-table-border, #4a6572); margin-top: 20px; margin-bottom: 10px;">';
+                        if (secondInningsHtmlContent.endsWith(hrTagToRemove)) {
+                            secondInningsHtmlContent = secondInningsHtmlContent.substring(0, secondInningsHtmlContent.length - hrTagToRemove.length);
+                        }
+
+                        const dataContainer = document.getElementById('secondInningsScorecardDataContainer');
+                        const modal = document.getElementById('secondInningsScorecardModal');
+
+                        if (dataContainer && modal) {
+                            dataContainer.innerHTML = secondInningsHtmlContent;
+                            modal.style.display = 'flex';
+                        }
+                    });
+                }
+
+            } else if (secondInnSummary) {
+                secondInnSummary.style.display = 'none'; // Ensure it's hidden if no 2nd innings data
+            }
+
+            // Event listener for the dynamically added viewFirstInningsScorecardBtn (if match ended in 1st innings)
+            const dynamicViewFirstInnBtn = document.getElementById('viewFirstInningsScorecardBtn');
+            // Check if it's the one inside firstInnSummary (not the one from setupInningsUI(2))
+            // This check can be tricky. A more robust way would be to ensure the button from setupInningsUI(2)
+            // is the only one, or ensure this listener is only added if setupInningsUI(2) wasn't called.
+            // For now, we rely on the population logic: if firstInnSummary was populated HERE, its button needs a listener.
+            if (dynamicViewFirstInnBtn && firstInnSummary && firstInnSummary.contains(dynamicViewFirstInnBtn) && !dynamicViewFirstInnBtn.hasAttribute('data-listener-attached-dynamic')) {
+                 dynamicViewFirstInnBtn.addEventListener('click', () => {
+                    // This logic is similar to the one in setupInningsUI(2) for the first innings button
+                    if (!fullMatchData) return;
+                    const teamsDataForFunc = {
+                        [fullMatchData.team1_code.toLowerCase()]: fullMatchData.team1_data,
+                        [fullMatchData.team2_code.toLowerCase()]: fullMatchData.team2_data
+                    };
+                    let firstInningsHtmlContent = generateInningsHTML(
+                        1, fullMatchData.innings1_bat_team,
+                        (fullMatchData.innings1_bat_team.toLowerCase() === fullMatchData.team1_code.toLowerCase() ? fullMatchData.team2_code : fullMatchData.team1_code),
+                        fullMatchData.innings1_runs, fullMatchData.innings1_wickets, fullMatchData.innings1_balls,
+                        fullMatchData.innings1_battracker, fullMatchData.innings1_bowltracker, teamsDataForFunc
+                    );
+                    const hrTagToRemove = '<hr style="border:0; height: 1px; background: var(--scorecard-table-border, #4a6572); margin-top: 20px; margin-bottom: 10px;">';
+                    if (firstInningsHtmlContent.endsWith(hrTagToRemove)) {
+                        firstInningsHtmlContent = firstInningsHtmlContent.substring(0, firstInningsHtmlContent.length - hrTagToRemove.length);
+                    }
+                    const dataContainer = document.getElementById('firstInningsScorecardDataContainer'); // Ensure this ID is correct for the 1st innings modal
+                    const modal = document.getElementById('firstInningsScorecardModal');
+                    if (dataContainer && modal) {
+                        dataContainer.innerHTML = firstInningsHtmlContent;
+                        modal.style.display = 'flex';
+                    }
+                });
+                dynamicViewFirstInnBtn.setAttribute('data-listener-attached-dynamic', 'true');
+            }
+
 
             const scorecardHTML = generateFullScorecardHTML(fullMatchData);
             // The h2 title "Full Match Scorecard" is now static in the modal HTML.
