@@ -562,6 +562,7 @@
         </div>
         <button id="startAutoPlayBtn" class="control-bar-button">Auto-Play</button>
         <button id="pauseAutoPlayBtn" class="control-bar-button" style="display:none;">Pause</button>
+        <button id="viewScorecardBtn" class="control-bar-button" style="display:none;">View Scorecard</button>
     </div>
 
     <script>
@@ -955,7 +956,7 @@
             nextBallBtn.disabled = false;
             startAutoPlayBtn.disabled = false;
             pauseAutoPlayBtn.classList.add('hidden');
-            simSpeedSelect.disabled = false;
+            simSpeedSelect.disabled = false; // Keep this, it's not a display style
             // finalScorecardDiv.style.display = 'none'; // Content area, not modal itself
             if (finalScorecardModal) finalScorecardModal.style.display = 'none'; // Hide modal at start
             // if (firstInningsScorecardDiv) firstInningsScorecardDiv.style.display = 'none'; // This line is removed as variable is removed
@@ -966,28 +967,58 @@
             if (currentRunRateDisplay) currentRunRateDisplay.style.display = 'none';
             if (secondInningsRRDisplay) secondInningsRRDisplay.style.display = 'none';
             if (requiredRunRateDisplay) requiredRunRateDisplay.style.display = 'none';
-            if (bottomControlBar) bottomControlBar.style.display = 'flex'; // Ensure control bar is visible
 
-            // Set initial button states correctly without calling disableControls()
+            // Explicitly set display styles and states for control bar elements
+            const nextBallButton = document.getElementById('nextBallBtn');
+            if (nextBallButton) {
+                nextBallButton.style.display = 'inline-block';
+                nextBallButton.disabled = false;
+            }
+
+            const speedControl = document.querySelector('.speed-control-container');
+            if (speedControl) speedControl.style.display = 'flex';
+            // simSpeedSelect.disabled = false; // Already handled above and at end of pause listener
+
+            const startAutoPlayButton = document.getElementById('startAutoPlayBtn');
+            if (startAutoPlayButton) {
+                startAutoPlayButton.style.display = 'inline-block';
+                startAutoPlayButton.classList.remove('hidden');
+                startAutoPlayButton.disabled = false;
+            }
+
+            const pauseAutoPlayButton = document.getElementById('pauseAutoPlayBtn');
+            if (pauseAutoPlayButton) {
+                pauseAutoPlayButton.style.display = 'none';
+                pauseAutoPlayButton.classList.add('hidden');
+                pauseAutoPlayButton.disabled = true;
+            }
+
+            const viewScorecardButton = document.getElementById('viewScorecardBtn');
+            if (viewScorecardButton) {
+                viewScorecardButton.style.display = 'none';
+                // Event listener for View Scorecard button (setup once)
+                if (!viewScorecardButton.hasAttribute('data-listener-attached')) {
+                    viewScorecardButton.addEventListener('click', () => {
+                        if (finalScorecardModal) finalScorecardModal.style.display = 'flex';
+                        if (bottomControlBar) bottomControlBar.style.display = 'none'; // Hide control bar when modal is shown
+                    });
+                    viewScorecardButton.setAttribute('data-listener-attached', 'true');
+                }
+            }
+
+            if (bottomControlBar) bottomControlBar.style.display = 'flex'; // Ensure control bar itself is visible
+
+            // console.log statements for startAutoPlayBtn and pauseAutoPlayBtn can be removed if states are clear from above
             console.log('[DEBUG] initializeReplay called.');
 
             if (firstInningsScorecardModal) { // Hide new modal
                 firstInningsScorecardModal.style.display = 'none';
             }
-
-            nextBallBtn.disabled = false;
-            simSpeedSelect.disabled = false;
-            if (bottomControlBar) bottomControlBar.style.display = 'flex'; // Ensure control bar is visible
-
-            startAutoPlayBtn.classList.remove('hidden');
-            startAutoPlayBtn.style.display = 'inline-block';
-            startAutoPlayBtn.disabled = false;
-            console.log('[DEBUG] initial: startAutoPlayBtn shown, display inline-block, enabled.');
-
-            pauseAutoPlayBtn.classList.add('hidden');
-            pauseAutoPlayBtn.style.display = 'none';
-            pauseAutoPlayBtn.disabled = true;
-            console.log('[DEBUG] initial: pauseAutoPlayBtn hidden, display none, disabled.');
+            // nextBallBtn.disabled = false; // Handled above
+            // simSpeedSelect.disabled = false; // Handled above
+            // Redundant bottomControlBar.style.display = 'flex'; removed
+            // Redundant startAutoPlayBtn settings removed
+            // Redundant pauseAutoPlayBtn settings removed
         }
 
 
@@ -1017,11 +1048,33 @@
             if (newCloseBtn) {
                 newCloseBtn.addEventListener('click', () => {
                     if (finalScorecardModal) finalScorecardModal.style.display = 'none';
-                    if (bottomControlBar) bottomControlBar.style.display = 'flex'; // Show the control bar again
+
+                    // Hide gameplay controls
+                    const nextBallButton = document.getElementById('nextBallBtn');
+                    const speedControl = document.querySelector('.speed-control-container');
+                    const startAutoPlayButton = document.getElementById('startAutoPlayBtn');
+                    const pauseAutoPlayButton = document.getElementById('pauseAutoPlayBtn');
+
+                    if (nextBallButton) nextBallButton.style.display = 'none';
+                    if (speedControl) speedControl.style.display = 'none';
+                    if (startAutoPlayButton) startAutoPlayButton.style.display = 'none';
+                    if (pauseAutoPlayButton) pauseAutoPlayButton.style.display = 'none';
+
+                    // Show View Scorecard button
+                    const viewScorecardButton = document.getElementById('viewScorecardBtn');
+                    if (viewScorecardButton) viewScorecardButton.style.display = 'inline-block';
+
+                    if (bottomControlBar) bottomControlBar.style.display = 'flex';
                 });
             }
 
             if (finalScorecardModal) finalScorecardModal.style.display = 'flex'; // Show modal
+            // When match ends, initially hide all controls in bottom bar except viewScorecardBtn
+            // This logic will be handled by the newCloseScorecardBtn click,
+            // and also needs to be applied if the user closes the modal via the 'X' button.
+            // For now, the default behavior of hiding the entire bar is kept,
+            // but the new button's click will override it.
+            // A more comprehensive solution would involve a function to set this state.
             if (bottomControlBar) bottomControlBar.style.display = 'none'; // Hide the control bar
 
             // Hide first innings scorecard if it's still visible
