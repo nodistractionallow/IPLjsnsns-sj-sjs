@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify # Ensure jsonify is here
 import json
 import mainconnect # Import the game logic from mainconnect.py
 # from match_simulator import MatchSimulator # MatchSimulator is no longer actively used for new game initiation from UI
@@ -6,9 +6,46 @@ import os
 import copy # For deepcopy if needed by process_batting_innings
 import uuid # For unique match IDs
 import logging # For logging errors
+import sqlite3
+from datetime import datetime, timedelta # Ensure timedelta is here
+# from flask import g # g can be imported if request-bound DB connections are planned later
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+# Points System Constants
+NEW_USER_DEFAULT_COINS = 500
+RATE_LIMIT_NEW_USERS_PER_IP = 2 # Max new users from one IP
+RATE_LIMIT_WINDOW_HOURS = 24    # Within this many hours
+
+ACTION_COSTS = {
+    'direct_scorecard': 30,
+    'ball_by_ball': 50
+}
+
+# Database Configuration
+DATABASE_FILE = os.path.join(app.root_path, 'ipl_points.db')
+
+def get_db_connection():
+    conn = sqlite3.connect(DATABASE_FILE)
+    conn.row_factory = sqlite3.Row # To access columns by name
+    return conn
+
+def init_db():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS user_points (
+            client_id TEXT PRIMARY KEY,
+            coins INTEGER NOT NULL DEFAULT 0,
+            last_seen_ip TEXT,
+            first_seen_timestamp TEXT NOT NULL,
+            last_updated_timestamp TEXT NOT NULL
+        )
+    ''')
+    conn.commit()
+    conn.close()
+    print("Database initialized.") # Optional: for logging
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,6 +58,10 @@ if not os.path.exists(TMP_LOG_DIR):
     except OSError as e:
         logging.error(f"Error creating temporary log directory {TMP_LOG_DIR}: {e}")
 
+# Initialize Database on startup
+# This should be after all app config but before routes
+with app.app_context():
+    init_db()
 
 # --- Helper Functions ---
 def load_teams():
@@ -209,6 +250,143 @@ def replay_match_view():
 # @app.route('/simulate_next_ball', methods=['POST'])
 # def simulate_next_ball():
 #     # ... (code for MatchSimulator based simulation call) ...
+
+@app.route('/api/init_user_or_get_balance', methods=['POST'])
+def init_user_or_get_balance():
+    conn = None
+    data = None
+    try:
+        data = request.get_json()
+        if not data or 'client_id' not in data:
+            return jsonify({"error": "Missing client_id"}), 400
+
+        client_id = data['client_id']
+        if not isinstance(client_id, str) or not (30 < len(client_id) < 70): # Basic check for UUID-like string
+             return jsonify({"error": "Invalid client_id format"}), 400
+
+        current_ip = request.remote_addr
+        now_iso = datetime.utcnow().isoformat()
+
+        conn = get_db_connection() # Assumes get_db_connection() is defined from previous step
+        cursor = conn.cursor()
+
+        cursor.execute("SELECT coins FROM user_points WHERE client_id = ?", (client_id,))
+        user_row = cursor.fetchone()
+
+        if user_row:
+            # User exists, update last_seen_ip and last_updated_timestamp
+            cursor.execute("""
+                UPDATE user_points
+                SET last_seen_ip = ?, last_updated_timestamp = ?
+                WHERE client_id = ?
+            """, (current_ip, now_iso, client_id))
+            conn.commit()
+            return jsonify({"coins": user_row['coins'], "status": "existing_user"})
+        else:
+            # New user, check rate limit for this IP
+            limit_timestamp_iso = (datetime.utcnow() - timedelta(hours=RATE_LIMIT_WINDOW_HOURS)).isoformat()
+
+            cursor.execute("""
+                SELECT COUNT(*) FROM user_points
+                WHERE last_seen_ip = ? AND first_seen_timestamp > ?
+            """, (current_ip, limit_timestamp_iso))
+            count_row = cursor.fetchone()
+            ip_count_recent_new_users = count_row[0] if count_row and count_row[0] is not None else 0
+
+            if ip_count_recent_new_users >= RATE_LIMIT_NEW_USERS_PER_IP:
+                # Rate limit exceeded for this IP. Register user with 0 coins.
+                cursor.execute("""
+                    INSERT INTO user_points (client_id, coins, last_seen_ip, first_seen_timestamp, last_updated_timestamp)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (client_id, 0, current_ip, now_iso, now_iso))
+                conn.commit()
+                app.logger.info(f"Rate limit exceeded for IP {current_ip}. New client_id {client_id} registered with 0 coins.")
+                return jsonify({"coins": 0, "status": "rate_limited"})
+            else:
+                # Rate limit OK, grant default coins
+                cursor.execute("""
+                    INSERT INTO user_points (client_id, coins, last_seen_ip, first_seen_timestamp, last_updated_timestamp)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (client_id, NEW_USER_DEFAULT_COINS, current_ip, now_iso, now_iso))
+                conn.commit()
+                app.logger.info(f"New client_id {client_id} registered for IP {current_ip} with {NEW_USER_DEFAULT_COINS} coins.")
+                return jsonify({"coins": NEW_USER_DEFAULT_COINS, "status": "new_user"})
+    except sqlite3.Error as e:
+        client_id_for_log = data.get('client_id', 'N/A') if isinstance(data, dict) else 'N/A'
+        app.logger.error(f"Database error in /api/init_user_or_get_balance for client_id {client_id_for_log}: {e}")
+        return jsonify({"error": "Database operation failed", "details": str(e)}), 500
+    except Exception as e:
+        client_id_for_log = data.get('client_id', 'N/A') if isinstance(data, dict) else 'N/A'
+        app.logger.error(f"Unexpected error in /api/init_user_or_get_balance for client_id {client_id_for_log}: {e}")
+        return jsonify({"error": "An unexpected error occurred", "details": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
+@app.route('/api/deduct_coins', methods=['POST'])
+def deduct_coins():
+    conn = None
+    data = None # Initialize data to None for broader scope in error logging
+    try:
+        data = request.get_json()
+        if not data or 'client_id' not in data or 'action_type' not in data:
+            return jsonify({"success": False, "error": "Missing client_id or action_type"}), 400
+
+        client_id = data['client_id']
+        action_type = data['action_type']
+
+        if not isinstance(client_id, str) or not (30 < len(client_id) < 70): # Basic check for UUID-like string
+             return jsonify({"success": False, "error": "Invalid client_id format"}), 400
+
+        if action_type not in ACTION_COSTS:
+            return jsonify({"success": False, "error": "Invalid action_type"}), 400
+
+        cost = ACTION_COSTS[action_type]
+        now_iso = datetime.utcnow().isoformat()
+
+        conn = get_db_connection() # Assumes get_db_connection() is defined
+        cursor = conn.cursor()
+
+        # Get current coins first
+        cursor.execute("SELECT coins FROM user_points WHERE client_id = ?", (client_id,))
+        user_row = cursor.fetchone()
+
+        if not user_row:
+            # This case should ideally be rare if client always calls init_user first.
+            # Treat as insufficient funds or an error state.
+            app.logger.warning(f"Attempt to deduct coins for non-existent client_id: {client_id}")
+            # Optionally, initialize user here with 0 coins if strict flow not enforced client-side
+            # For now, just deny.
+            return jsonify({"success": False, "error": "User not found. Please initialize first."}), 404
+
+        current_coins = user_row['coins']
+
+        if current_coins < cost:
+            return jsonify({"success": False, "error": "Insufficient coins", "current_balance": current_coins}), 403 # 403 Forbidden or 400 Bad Request
+
+        # Deduct coins and update timestamp
+        new_balance = current_coins - cost
+        cursor.execute("""
+            UPDATE user_points
+            SET coins = ?, last_updated_timestamp = ?
+            WHERE client_id = ?
+        """, (new_balance, now_iso, client_id))
+        conn.commit()
+
+        app.logger.info(f"Deducted {cost} coins from client_id {client_id} for action {action_type}. New balance: {new_balance}")
+        return jsonify({"success": True, "new_balance": new_balance})
+
+    except sqlite3.Error as e:
+        client_id_for_log = data.get('client_id', 'N/A') if isinstance(data, dict) else 'N/A'
+        app.logger.error(f"Database error in /api/deduct_coins for client_id {client_id_for_log}: {e}")
+        return jsonify({"success": False, "error": "Database operation failed", "details": str(e)}), 500
+    except Exception as e:
+        client_id_for_log = data.get('client_id', 'N/A') if isinstance(data, dict) else 'N/A'
+        app.logger.error(f"Unexpected error in /api/deduct_coins for client_id {client_id_for_log}: {e}")
+        return jsonify({"success": False, "error": "An unexpected error occurred", "details": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

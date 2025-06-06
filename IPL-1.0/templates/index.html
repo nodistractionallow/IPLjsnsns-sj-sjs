@@ -427,6 +427,7 @@
 <body>
     <button id="themeToggleBtn" style="position: fixed; top: 20px; right: 20px; padding: 8px 12px; z-index: 1001; cursor: pointer;">Toggle Theme</button>
     <div class="container">
+        <div style="text-align: right; padding: 10px; font-weight: bold; font-size: 1.1em;">Your Coins: <span id="userCoinBalance">Loading...</span> <span id="coinIconPlaceholder"></span></div>
         <h2>Cricket Scorecard Generator</h2>
 
         {% if not scorecard_data %}
@@ -435,6 +436,7 @@
                 <form id="scorecardForm" action="{{ url_for('generate_scorecard') }}" method="post">
                     <input type="hidden" name="selectedTeam1" id="selectedTeam1">
                     <input type="hidden" name="selectedTeam2" id="selectedTeam2">
+                    <input type="hidden" name="simulation_type" id="hiddenSimulationType">
 
                     <div class="team-grid-container">
                         {% for team_code, team_data in teams.items() %}
@@ -452,8 +454,18 @@
                     </div>
 
                     <div class="simulation-options" style="text-align: center; margin-top: 20px; display: none;">
-                        <button type="submit" name="simulation_type" value="direct" id="directSimButton" class="sim-button">Direct Scorecard</button>
-                        <button type="submit" name="simulation_type" value="ball_by_ball" id="ballByBallSimButton" class="sim-button">Ball-by-Ball Simulation</button>
+                        <div style="margin-bottom: 15px;">
+                            <button type="button" name="simulation_type_btn" value="direct" id="directSimButton" class="sim-button">Direct Scorecard</button>
+                            <div id="directCostDisplay" style="margin-top: 5px; font-size: 0.9em; color: var(--text-color);">
+                                Cost: 30 <span id="coinIconPlaceholderCostDirect"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <button type="button" name="simulation_type_btn" value="ball_by_ball" id="ballByBallSimButton" class="sim-button">Ball-by-Ball Simulation</button>
+                            <div id="ballByBallCostDisplay" style="margin-top: 5px; font-size: 0.9em; color: var(--text-color);">
+                                Cost: 50 <span id="coinIconPlaceholderCostBallByBall"></span>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -505,6 +517,70 @@
         {% endif %}
     </div>
     <script>
+    let currentUserCoins = 0; // Global variable for user's coins
+
+    function getClientId() {
+        let clientId = localStorage.getItem('ipl_user_client_id');
+        if (!clientId) {
+            if (window.crypto && window.crypto.randomUUID) {
+                clientId = window.crypto.randomUUID();
+            } else {
+                // Fallback for older browsers or non-secure contexts (less ideal for uniqueness)
+                clientId = 'user-' + Date.now() + '-' + Math.floor(Math.random() * 1000000);
+            }
+            localStorage.setItem('ipl_user_client_id', clientId);
+            console.log('New client ID generated:', clientId);
+        }
+        return clientId;
+    }
+
+    async function initializeUserSession() {
+        const clientId = getClientId(); // Assumes getClientId() is defined in the same script
+        const coinBalanceSpan = document.getElementById('userCoinBalance');
+
+        if (!coinBalanceSpan) {
+            console.error('userCoinBalance span not found');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/init_user_or_get_balance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ client_id: clientId })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+                console.error('Error initializing user session:', response.status, errorData);
+                coinBalanceSpan.textContent = 'Error';
+                currentUserCoins = 0; // Fallback or handle as critical error
+                return;
+            }
+
+            const data = await response.json();
+            currentUserCoins = data.coins;
+            coinBalanceSpan.textContent = currentUserCoins;
+
+            if(data.status) {
+                console.log('User status:', data.status);
+                if(data.status === 'rate_limited') {
+                    alert('You have been rate-limited for creating new accounts. Your coin balance is 0.');
+                }
+            }
+
+        } catch (error) {
+            console.error('Network or other error initializing user session:', error);
+            coinBalanceSpan.textContent = 'Error';
+            currentUserCoins = 0; // Fallback
+        }
+    }
+
+    // Call initializeUserSession when the page loads
+    // document.addEventListener('DOMContentLoaded', initializeUserSession); // This will be part of the larger DOMContentLoaded listener below
+
         function toggleCommentary(commentaryId) {
             var content = document.getElementById(commentaryId);
             var header = content.previousElementSibling;
@@ -518,8 +594,96 @@
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            initializeUserSession(); // Call user session initialization first
+
             const scorecardData = {{ scorecard_data | tojson | safe if scorecard_data else 'null' }};
             const teamsData = {{ teams | tojson | safe }};
+
+            // Coin deduction and form submission logic
+            const matchForm = document.getElementById('scorecardForm'); // Corrected form ID
+            const hiddenSimulationTypeInput = document.getElementById('hiddenSimulationType');
+
+            const directButton = document.getElementById('directSimButton');
+            const ballByBallButton = document.getElementById('ballByBallSimButton');
+
+            const ACTION_COSTS_FRONTEND = {
+                'direct': 30,
+                'ball_by_ball': 50
+            };
+
+            async function handleSimulationButtonClick(actionValue) {
+                // Check if teams are selected - this validation is handled by validateSelections enabling the buttons
+                // but an explicit check on the hidden inputs for team selection could be added if needed.
+                // For now, rely on buttons being visible/enabled as primary gate.
+
+                const clientId = getClientId();
+                const cost = ACTION_COSTS_FRONTEND[actionValue];
+                const actionTypeApi = (actionValue === 'direct') ? 'direct_scorecard' : 'ball_by_ball';
+
+                if (currentUserCoins < cost) {
+                    alert('Not enough coins! You need ' + cost + ' coins for this action. Current balance: ' + currentUserCoins);
+                    return;
+                }
+
+                this.disabled = true;
+                const originalButtonText = this.textContent;
+                this.textContent = 'Processing...';
+
+                try {
+                    const response = await fetch('/api/deduct_coins', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ client_id: clientId, action_type: actionTypeApi })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        currentUserCoins = data.new_balance;
+                        document.getElementById('userCoinBalance').textContent = currentUserCoins;
+
+                        if (hiddenSimulationTypeInput) {
+                            hiddenSimulationTypeInput.value = actionValue;
+                        }
+                        if (matchForm) { // Ensure matchForm exists before submitting
+                           matchForm.submit();
+                        } else {
+                            console.error("Match form not found, cannot submit.");
+                             alert("Error: Could not submit simulation request.");
+                             this.disabled = false;
+                             this.textContent = originalButtonText;
+                        }
+                    } else {
+                        alert('Failed to process transaction: ' + (data.error || 'Unknown server error'));
+                        if (data.current_balance !== undefined) {
+                            currentUserCoins = data.current_balance;
+                            document.getElementById('userCoinBalance').textContent = currentUserCoins;
+                        }
+                        this.disabled = false;
+                        this.textContent = originalButtonText;
+                    }
+                } catch (error) {
+                    console.error('Error during coin deduction or form submission:', error);
+                    alert('An error occurred. Please try again.');
+                    this.disabled = false;
+                    this.textContent = originalButtonText;
+                }
+            }
+
+            if (directButton) {
+                directButton.addEventListener('click', function() {
+                    handleSimulationButtonClick.call(this, 'direct');
+                });
+            }
+            if (ballByBallButton) {
+                ballByBallButton.addEventListener('click', function() {
+                    handleSimulationButtonClick.call(this, 'ball_by_ball');
+                });
+            }
+            // End of coin deduction logic
+
 
             if (scorecardData && scorecardData.tossMsg && !sessionStorage.getItem('tossAnimationShownForMatch_' + scorecardData.team1 + '_' + scorecardData.team2 + '_' + scorecardData.tossMsg)) {
                 runTossAnimation();
